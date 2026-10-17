@@ -3,14 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Examen de Geografía - 20 preguntas</title>
+<title>Examen de Geografía - Versión Final</title>
 <style>
   body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
   .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
   h1 { text-align: center; }
   #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
   .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
   .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
   label { display: block; margin: 5px 0; cursor: pointer; }
   button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
   button:hover { background: #004999; }
@@ -18,248 +20,376 @@
   .correct { color: green; font-weight: bold; }
   .incorrect { color: red; font-weight: bold; }
   .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Examen de Geografía</h1>
-  <div id="timer">Tiempo restante: 20:00</div>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
   <form id="exam"></form>
   <div style="text-align:center;">
     <button type="button" id="submitBtn">Calificar</button>
     <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
   </div>
   <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
 </div>
 
 <script>
-const questions = [
-['¿Qué es la Geografía?', ['La Geografía es la Ciencia que estudia el mapeo de las aguas de la tierra, así como los fenómenos naturales y humanos que la afectan.', 'La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos naturales y artificiales que la afectan.', 'La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos naturales y humanos que la afectan.', 'La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos económicos y humanos que la afectan.'], 2],
-['¿Cuáles son las ramas de la hidrografía?', ['Hidrografía continental, Hidrografía oceánica.', 'Hidrografía marítima, Hidrografía oceánica.', 'Hidrografía continental, Hidrografía lacustre.', 'Ninguna de las anteriores.'], 0],
-['¿Qué es un Istmo?', ['Franja de tierra que une dos territorios.', 'Extensión de tierra rodeada por agua.', 'Porción de mar que se adentra en la costa.', 'Ninguno de los anteriores.'], 0],
-['¿Qué es una península?', ['Porción de mar que se adentra en la costa.', 'Extensión de tierra rodeada por agua excepto por una parte que está conectada al continente.', 'Franja de tierra que une dos territorios.', 'Conjunto de islas que se adentran entre sí.'], 1],
-['¿Qué es un archipiélago?', ['Conjunto de islas próximas entre sí.', 'Porción de mar que se adentra en la costa.', 'Franja de tierra que une dos territorios.', 'Ninguna de las anteriores.'], 0],
-['¿Cuál es el país más pequeño de Norteamérica?', ['Groenlandia.', 'Alaska.', 'Canadá.', 'México.'], 0],
-['¿Cuál es la montaña más alta del mundo?', ['Monte Etna.', 'Hekla.', 'Everest.', 'Popocatépetl.'], 2],
-['¿Cuántos Países tiene Sudamérica?', ['10 Países.', '12 Países.', '9 Países.', '11 Países.'], 1],
-['¿Cuál es la capital de Uruguay?', ['Montevideo.', 'Asunción.', 'Quito.', 'Ninguno de los anteriores.'], 0],
-['¿Cuál es el país más pequeño de Europa?', ['España.', 'Italia.', 'Portugal.', 'Ciudad del Vaticano.'], 3],
-['¿Cuál es el río más largo de Europa?', ['Río Sena.', 'Río Volga.', 'Río Misisipi.', 'Río Amazonas.'], 1],
-['¿Cuántos países reconocidos internacionalmente tiene Europa?', ['52 Países.', '34 Países.', '44 Países.', 'Ninguno de los anteriores.'], 2],
-['¿Cuál es la capital de Países Bajos?', ['Colonia.', 'Bruselas.', 'Róterdam.', 'Ámsterdam.'], 3],
-['¿En qué continente se encuentra Croacia?', ['Asia.', 'América.', 'Europa.', 'África.'], 2],
-['¿Cuál es la capital de Suiza?', ['Berna.', 'Zúrich.', 'Geneva.', 'Berlín.'], 0],
-['¿Cuál es la capital de Alemania?', ['Madrid.', 'Hamburgo.', 'Múnich.', 'Berlín.'], 3],
-['¿Cuál es la longitud del río Danubio?', ['3.850 km.', '4.850 km.', '2.850 km.', '2.880 km.'], 2],
-['¿En qué continente se encuentra Jordania?', ['Asia.', 'Europa.', 'América.', 'Ninguna de las anteriores.'], 0],
-['¿Con cuántos países limita China?', ['12 Países.', '14 Países.', '5 Países.', '8 Países.'], 1],
-['¿Cuáles son las zonas climáticas que presenta Asia?', ['Zona ártica, zona desértica y zona mediterránea.', 'Zona tropical y zona desértica.', 'Zona ártica, zona desértica, zona mediterránea y zona monzónica.', 'Ninguna de las anteriores.'], 2],
-['¿Cuál es el lago con la superficie más extensa del mundo?', ['Lago Tanganica.', 'Mar Muerto.', 'Mar Caspio.', 'Lago Titicaca.'], 2],
-['¿A qué continente pertenece Arabia Saudita?', ['Asia.', 'Europa.', 'África.', 'Ninguno de los anteriores.'], 0],
-['¿Cuál es la capital de China?', ['Shanghái.', 'Pekín.', 'Hong Kong.', 'Wuhan.'], 1],
-['Marca la frontera entre China y Rusia en el noreste de Asia.', ['Río Yeniséi.', 'Río Mekong.', 'Río Amur.', 'Río Misisipi.'], 2],
-['¿En qué continente se encuentra el desierto del Sahara?', ['África.', 'América.', 'Europa.', 'Asia.'], 0],
-['El río Nilo es uno de los ríos más largos del mundo, se encuentra en el continente africano y tiene una extensión de:', ['6.650 kilómetros.', '4.800 kilómetros.', '2.650 kilómetros.', '10.600 kilómetros.'], 0],
-['¿Cuál es la capital de Egipto?', ['Alejandría.', 'El Cairo.', 'Costa de Marfil.', 'Etiopía.'], 1],
-['¿En qué país se encuentra el monte Kilimanjaro?', ['Etiopía.', 'Kenia.', 'Tanzania.', 'Nigeria.'], 2],
-['¿Cuál es el lago más grande de África?', ['Lago Tanganica.', 'Lago Malawi.', 'Lago Chad.', 'Lago Victoria.'], 3],
-['¿Cuántos países tiene África?', ['42 Países.', '54 Países.', '60 Países.', '88 Países.'], 1],
-['África está rodeada por varios mares, los principales son:', ['El mar Mediterráneo, el mar Rojo, el océano Índico y el océano Atlántico.', 'El mar Muerto, el mar Rojo, el océano Pacífico y el océano Atlántico.', 'El mar Mediterráneo, el mar Rojo, el océano Índico y el océano Pacífico.', 'El mar Mediterráneo, el océano Índico y el océano Atlántico.'], 0],
-['Algunos de los desiertos más prominentes de África son:', ['Desierto del Sahara, desierto de Tabernas, desierto de Karoo.', 'Desierto del Sahara, desierto del Kalahari, desierto de Karoo.', 'Desierto del Sahara, desierto del Kalahari, desierto de Bardenas.', 'Desierto de Atacama, desierto del Kalahari, desierto de Karoo.'], 1],
-['África es uno de los continentes con ríos más grandes, algunos de ellos son:', ['Río Misisipi, Río Congo, Río Níger, Río Zambeze.', 'Río Nilo, Río Mekong, Río Níger, Río Zambeze.', 'Río Nilo, Río Congo, Río Indo, Río Zambeze.', 'Río Nilo, Río Congo, Río Níger, Río Zambeze.'], 3],
-['Los siguientes países pertenecen al continente africano:', ['Chipre, Libia, Nigeria, Egipto.', 'Etiopía, Libia, Armenia, Egipto.', 'Etiopía, Libia, Nigeria, Nepal.', 'Etiopía, Libia, Nigeria, Egipto.'], 3],
-['¿Cuáles son las regiones en la que se divide el continente de Oceanía?', ['Australasia, Melanesia, Micronesia y Polinesia.', 'Australasia y Melanesia.', 'Australasia, Melanesia y Micronesia.', 'Ninguna de las anteriores.'], 0],
-['¿Cuáles son las tres capas principales que presenta el sol?', ['Núcleo.', 'Fotosfera.', 'Atmósfera.', 'Todas las anteriores.'], 3],
-['¿Cuáles son los grupos étnicos del continente de Oceanía?', ['Indígenas y Euroasiáticos.', 'Indígenas, Melanesios, Polinesios y Euroasiáticos.', 'Indígenas, Melanesios y Polinesios.', 'Ninguna de las anteriores.'], 1],
-['¿Cuáles son las regiones en las que se divide la Antártida?', ['Región Oriental y Región Occidental.', 'Región Tropical y Región Occidental.', 'Región Oriental y Región Central.', 'Región Tropical y Región Central.'], 0],
-['¿Cuál es la montaña de mayor altitud en la Antártida?', ['Everest.', 'Macizo Vinson.', 'Himalaya.', 'Sajama.'], 1],
-['¿Cuál es el país más grande de Oceanía?', ['Nueva Zelanda.', 'China.', 'Australia.', 'India.'], 2],
-['¿Cuál es la capital de Australia?', ['Wellington.', 'Canberra.', 'Filipinas.', 'Micronesia.'], 1],
-['¿Cuál es la extensión en kilómetros cuadrados de la Antártida?', ['15 millones de kilómetros cuadrados.', '20 millones de kilómetros cuadrados.', '14 millones de kilómetros cuadrados.', '10 millones de kilómetros cuadrados.'], 2],
-['Es un proceso de recopilación sistemática de información demográfica, económica y social sobre una población determinada en un lugar y momento específico.', ['Padrón.', 'Registro civil.', 'Censo.', 'Encuesta.'], 2],
-['Rama de la geografía que se ocupa del estudio de la interrelación entre la organización jurídico-política de la sociedad y el espacio geográfico o territorio que ocupa.', ['Geografía política.', 'Geografía económica.', 'Geografía demográfica.', 'Geografía biológica.'], 0],
-['Rama de la geografía que estudia la distribución de organismos vivos en el espacio geográfico.', ['Geografía política.', 'Geografía económica.', 'Geografía demográfica.', 'Geografía biológica.'], 3],
-['Rama de la geografía que se enfoca en el estudio de la superficie terrestre y sus características naturales.', ['Geografía política.', 'Geografía económica.', 'Geografía física.', 'Geografía biológica.'], 2],
-['¿Qué nombre recibe el punto de la elíptica más cercana al sol?', ['Perihelio.', 'Vértice.', 'Órbita.', 'Eclipse.'], 0],
-['¿Qué significa el meridiano de Greenwich?', ['Meridiano a partir del cual se miden las latitudes.', 'Meridiano a partir del cual se miden las longitudes.', 'Meridiano a partir del cual se miden los grados.', 'Meridiano a partir del cual se miden las dimensiones.'], 1],
-['¿Cuál es el río más grande del mundo?', ['Río Nilo.', 'Río Amazonas.', 'Río Misisipi.', 'Río Sena.'], 1],
-['¿Quién descubrió el río Amazonas y qué países abarca?', ['Francisco de Orellana, Bolivia, Perú, Venezuela, Brasil, Ecuador.', 'Francisco de Gamarra, Bolivia, Perú, Colombia, Brasil, Chile.', 'Francisco de Orellana, Bolivia, Perú, Colombia, Brasil, Ecuador.', 'Francisco de Ortega, Bolivia, Perú, Colombia, Brasil, Ecuador.'], 2],
-['¿Dónde se encuentra el río de La Plata?', ['Argentina y Uruguay.', 'Brasil y Argentina.', 'Bolivia y Argentina.', 'Argentina y Chile.'], 0],
-['¿Qué entiende por movimiento de rotación de la tierra?', ['Es el movimiento de la tierra que consiste en girar alrededor del sol.', 'Es el movimiento de la tierra que consiste en girar sobre su propio eje.', 'Es el movimiento del sol que consiste en girar sobre su propio eje.', 'Es el movimiento de la luna que consiste en girar sobre la tierra.'], 1],
-['¿Qué entiende por movimiento de traslación de la tierra?', ['Es el movimiento del sol que gira alrededor de la tierra.', 'Es el movimiento de la tierra que consiste en girar sobre su propio eje.', 'Es el movimiento de la tierra que gira alrededor del sol.', 'Es el movimiento de la luna que consiste en girar sobre la tierra.'], 2],
-['¿En cuántos continentes está dividido el planeta tierra?', ['4 continentes.', '7 continentes.', '3 continentes.', '5 continentes.'], 1],
-['¿Cuál es la cordillera más larga del mundo?', ['Cordillera de Los Andes.', 'Cordillera de Los Himalaya.', 'Cordillera de Los Alpes.', 'Cordillera del Atlas.'], 0],
-['Se refiere al estudio y descripción de las características físicas de la superficie terrestre, relacionadas con montañas, colinas, etc.', ['Hidrografía.', 'Geografía.', 'Orografía.', 'Biografía.'], 2],
-['Rama de la geografía que se encarga del estudio y descripción de las aguas de la tierra.', ['Hidrografía.', 'Geografía.', 'Orografía.', 'Biografía.'], 0],
-['Es el estudio detallado de las características del terreno incluyendo la medición de elevaciones y mapas.', ['Orografía.', 'Topografía.', 'Altimetría.', 'Geopolítica.'], 1],
-['La introducción de sustancias nocivas en los cuerpos de agua, que pueden tener grandes impactos ambientales.', ['Conservación de recursos hídricos.', 'Ciclo del agua.', 'Contaminación del agua.', 'Erosión fluvial.'], 2],
-['Proceso por el cual el agua de los ríos y arroyos desgasta y transporta sedimentos, influyendo en la forma de los paisajes.', ['Conservación de recursos hídricos.', 'Ciclo del agua.', 'Contaminación del agua.', 'Erosión fluvial.'], 3],
-['Forma en que la tierra se eleva o desciende, lo que puede dar lugar a montañas, cordilleras, llanuras y otro tipo de paisajes.', ['Relieve.', 'Altitud.', 'Topografía.', 'Ninguno de los anteriores.'], 0],
-['El estudio de la tierra se divide en capas, ¿cuáles son estas?', ['Atmósfera, Hidrosfera.', 'Geosfera, Atmósfera, Hidrosfera.', 'Geosfera, Atmósfera.', 'Ninguna de las anteriores.'], 1],
-['Se trata de la composición, la dinámica y los fenómenos meteorológicos.', ['Geosfera.', 'Hidrosfera.', 'Atmósfera.', 'Ninguno de los anteriores.'], 2],
-['Comprende toda el agua en la tierra, ya sea océanos, ríos, lagos, glaciares, etc.', ['Geosfera.', 'Hidrosfera.', 'Atmósfera.', 'Ninguno de los anteriores.'], 1],
-['Se refiere a la parte sólida de la tierra incluyendo corteza terrestre, el manto y el núcleo.', ['Geosfera.', 'Hidrosfera.', 'Atmósfera.', 'Ninguno de los anteriores.'], 0],
-['Estudia las características de nuestro planeta, atmosféricas, hidrológicas, geológicas, biológicas y humanas.', ['Geografía particular.', 'Geografía general.', 'Geografía topográfica.', 'Ninguna de las anteriores.'], 1],
-['Estudia al ser humano a través de su distribución espacial, su organización territorial y su actividad económica.', ['Geografía personal.', 'Geografía mixta.', 'Geografía humana.', 'Ninguna de las anteriores.'], 2],
-['¿Qué estudia la geografía política?', ['La extensión.', 'Los límites.', 'Administración de los estados.', 'Todos los anteriores.'], 3],
-['¿Cuáles son los dos movimientos que realiza la tierra?', ['Rotación y traslación.', 'Sístole y diástole.', 'Rotación y transportación.', 'Giratorio y traslado.'], 0],
-['¿Cuántos planetas tiene el sistema solar?', ['Nueve planetas.', 'Ocho planetas.', 'Siete planetas.', 'Diez planetas.'], 1],
-['¿Cuáles son los planetas del sistema solar?', ['Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano, Neptuno y Plutón.', 'Mercurio, Venus, Tierra, Marte, Júpiter, Plutón, Urano y Neptuno.', 'Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano y Neptuno.', 'Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Plutón y Neptuno.'], 2],
-['¿Cuál es el planeta más alejado del sistema solar?', ['Mercurio.', 'Venus.', 'Saturno.', 'Neptuno.'], 3],
-['¿Cuál es el planeta que se encuentra más cerca del sol?', ['Mercurio.', 'Venus.', 'Saturno.', 'Neptuno.'], 0],
-['Estrella gigante compuesta principalmente de hidrógeno y helio que es la fuente primaria de energía para el sistema solar.', ['Luna.', 'Asteroide.', 'Cometa.', 'El sol.'], 3],
-['Objetos compuestos principalmente de helio, polvo y roca que viajan a través del espacio.', ['Luna.', 'Asteroides.', 'Cometas.', 'El sol.'], 2],
-['Región más allá de la órbita de Neptuno que alberga numerosos objetos helados incluyendo Plutón y otros planetas enanos.', ['Luna.', 'Asteroides.', 'Cometas.', 'Cinturón de Kuiper.'], 3],
-['El interior del planeta Tierra se divide en las siguientes capas:', ['Núcleo, manto y corteza.', 'Núcleo y corteza.', 'Núcleo, tierra y corteza.', 'Manto y corteza.'], 0],
-['Gran unidad de paisaje ecológico definido por sus características climáticas y biológicas distintivas.', ['Medio ambiente.', 'Bioma.', 'Entorno ecológico.', 'Ninguna de las anteriores.'], 1],
-['Biomas áridos con escasa precipitación y temperatura extremadamente alta durante el día y bajas durante la noche.', ['Bosque tropical.', 'Bosque templado.', 'Desierto.', 'Pradera.'], 2],
-['Caracterizado por altas temperaturas y lluvias abundantes durante todo el año, estos biomas albergan una increíble diversidad de especies de plantas y animales.', ['Bosque tropical.', 'Bosque templado.', 'Tundra.', 'Pradera.'], 0],
-['Biomas fríos y secos con vegetación baja y adaptada al clima frío, que se encuentran en regiones polares.', ['Bosque tropical.', 'Bosque templado.', 'Tundra.', 'Desierto.'], 2],
-['¿Qué es la línea del Ecuador?', ['Es una línea imaginaria que rodea la tierra de manera vertical, dividiéndola en dos hemisferios, norte y sur.', 'Es una línea imaginaria que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, este y oeste.', 'Es una línea natural que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, norte y sur.', 'Es una línea imaginaria que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, norte y sur.'], 3],
-['¿Qué son las aguas lénticas?', ['Son aguas que cuentan con movimiento o corriente.', 'Son aguas que no cuentan con movimiento o corriente.', 'Son aguas que tienen una velocidad menor a los 5 litros por segundo.', 'Ninguna de las anteriores.'], 1],
-['¿Qué son las aguas lóticas?', ['Son aguas que cuentan con movimiento o corriente en una dirección definida.', 'Son aguas que no cuentan con movimiento o corriente.', 'Son aguas que tienen una velocidad menor a los 5 litros por segundo.', 'Ninguna de las anteriores.'], 0],
-['¿Qué son los lagos?', ['Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.', 'Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.', 'Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.', 'Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra.'], 0],
-['¿Qué son los ríos?', ['Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.', 'Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.', 'Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.', 'Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra.'], 1],
-['¿Qué son las lagunas?', ['Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.', 'Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.', 'Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.', 'Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra.'], 2],
-['¿Qué son los océanos?', ['Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.', 'Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.', 'Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.', 'Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra.'], 3],
-['¿Cuál es el ciclo de vida de los seres vivos?', ['Nacen, crecen, se reproducen y mueren.', 'Nacen, crecen y mueren.', 'Nacen, desarrollan, se reproducen y mueren.', 'Ninguna de las anteriores.'], 0],
-['¿Cuáles son los reinos en el cual se clasifican los seres vivos?', ['Reino animal, reino vegetal, reino protista y reino de las bacterias.', 'Reino animal, reino vegetal, reino de los hongos, reino protista y reino de las bacterias.', 'Reino animal, reino vegetal, reino de los hongos y reino de las bacterias.', 'Reino animal, reino orgánico, reino de los hongos, reino protista y reino de las bacterias.'], 1],
-['Este grupo incluye a todos los organismos multicelulares que son heterótrofos, lo que significa que obtienen sus alimentos al consumir otros organismos.', ['Reino animal.', 'Reino vegetal.', 'Reino de los hongos.', 'Reino de las bacterias.'], 0],
-['Este reino abarca a los organismos multicelulares que son autótrofos, lo que significa que pueden producir su propio alimento mediante la fotosíntesis:', ['Reino animal.', 'Reino vegetal.', 'Reino de los hongos.', 'Reino de las bacterias.'], 1],
-['Son organismos eucariotas, que se alimentan de otros organismos descomponiendo materia orgánica.', ['Reino animal.', 'Reino vegetal.', 'Reino de los hongos.', 'Reino de las bacterias.'], 2],
-['Es la parte de la geografía física que estudia las poblaciones humanas, en lo que respecta a su tamaño, estructura, distribución, densidad y crecimiento.', ['Censo.', 'Geografía humana.', 'Topografía.', 'Demografía.'], 3],
-['El crecimiento global de la población en el mundo es:', ['7,8 mil millones de personas.', '15,8 mil millones de personas.', '12,8 mil millones de personas.', '5,8 mil millones de personas.'], 0],
-['La estructura de edad de la población en el mundo varía significativamente de una región a otra y está influenciada por factores económicos, sociales y de salud, los continentes con menor edad y mayor edad son:', ['África con menor edad y Europa con mayor edad.', 'América con menor edad y Europa con mayor edad.', 'África con menor edad y América con mayor edad.', 'África con menor edad y Asia con mayor edad.'], 0],
-['¿Qué continente tiene mayor tasa de mortalidad en el mundo?', ['América.', 'África.', 'Asia.', 'Europa.'], 1],
-['¿Qué países del mundo tienen mayor tasa de migración?', ['México, Bolivia, Venezuela.', 'Nigeria, Congo, Tanzania.', 'Qatar, Emiratos Árabes, Kuwait.', 'China, México, Venezuela.'], 2],
-['¿Qué otros nombres reciben los recursos naturales, renovables y no renovables?', ['Productos de primer nivel.', 'Materia prima.', 'Productos de calidad.', 'Materia económica.'], 1],
-['Recursos naturales que se pueden regenerar o reponer con el tiempo:', ['Recursos abióticos, recursos bióticos, recursos hídricos.', 'Recursos minerales no metálicos, recursos energéticos fósiles.', 'Recursos abióticos, recursos bióticos, recursos energéticos fósiles.', 'Recursos bióticos, recursos hídricos, recursos energéticos fósiles.'], 0],
-['Recursos naturales que no pueden regenerar o reponer con el tiempo:', ['Recursos abióticos, recursos bióticos, recursos hídricos.', 'Recursos minerales no metálicos, recursos energéticos fósiles.', 'Recursos abióticos, recursos bióticos, recursos energéticos fósiles.', 'Recursos bióticos, recursos hídricos, recursos energéticos fósiles.'], 1],
-['¿Qué son los recursos agrícolas?', ['Son aquellos proporcionados por la crianza de aves.', 'Actividad económica mediante el manejo y explotación de animales domesticables.', 'Son aquellos proporcionados por el cultivo de la tierra.', 'Ninguna de las anteriores.'], 2],
-['¿Qué país del mundo es el mayor productor de hidrocarburos?', ['Bolivia.', 'Venezuela.', 'Estados Unidos.', 'Arabia Saudita.'], 3],
-['¿Qué son los hidrocarburos?', ['Son combustibles sólidos formados básicamente por hidrógeno y carbono.', 'Son combustibles fósiles formados básicamente por hidrógeno y carbono.', 'Son combustibles fósiles formados básicamente por hierro y carbono.', 'Son combustibles fósiles formados básicamente por hidrógeno y cromo.'], 1],
-['De acuerdo al Consejo Mundial del Oro, los países con más exportación de oro son:', ['China y Australia.', 'Bolivia y Brasil.', 'Egipto y Suiza.', 'Ninguno de los anteriores.'], 0],
-['¿Cuáles son los elementos constitutivos del estado?', ['Territorio, población y poder público.', 'Poder ejecutivo, Poder Legislativo, Poder Judicial.', 'Población, poder legislativo, poder judicial.', 'Ninguna de las anteriores.'], 0],
-['¿Qué atribuciones básicas tiene el poder ejecutivo?', ['Administrar la justicia.', 'Hacer cumplir las leyes y gobernar.', 'Elaborar leyes, cumplir y hacer cumplir el mandato constitucional.', 'Ninguna de las anteriores.'], 1],
-['¿Qué atribuciones básicas tiene el poder Judicial?', ['Administrar la justicia.', 'Hacer cumplir las leyes y gobernar.', 'Elaborar leyes, cumplir y hacer cumplir el mandato constitucional.', 'Ninguna de las anteriores.'], 0],
-['¿Cuáles son las cuencas de Bolivia?', ['Cuenca del Amazónica, Cuenca de La Plata.', 'Cuenca de los Andes, Cuenca del Amazónica, Cuenca de La Plata.', 'Cuenca del Amazónica, Cuenca de La Plata, cuenca Altiplánica.', 'Ninguna de las anteriores.'], 2],
-['¿Cuál es la superficie territorial de Bolivia?', ['1.098.581 kilómetros cuadrados.', '1.198.581 kilómetros cuadrados.', '1.098.381 kilómetros cuadrados.', '1.088.581 kilómetros cuadrados.'], 0],
-['Uno de los sistemas montañosos avanza paralelo al Océano Pacífico, con una longitud de 8.900 kilómetros y una altitud máxima de 6.960 metros.', ['Cordillera Oriental.', 'Cordillera de los Andes.', 'Cordillera Central.', 'Cordillera del Aconcagua.'], 1],
-['¿Cuáles son las zonas agrícolas de Bolivia?', ['Altiplano, valle y llano.', 'Altiplano, trópico y llano.', 'Altiplano, valle y bosque.', 'Ninguna de las anteriores.'], 0],
-['¿Cuáles son las zonas con mayor ganadería de Bolivia?', ['Santa Cruz, Beni y Tarija.', 'Santa Cruz, Beni y Cochabamba.', 'Santa Cruz, Beni y Pando.', 'Santa Cruz, Beni y La Paz.'], 2],
-['¿Dónde se encuentra Misicuni?', ['Al sur de la cordillera del Tunari, parte de la cordillera de los Andes.', 'Al sur de la cordillera del Central, parte de la cordillera real.', 'Al norte de la cordillera del Tunari, parte de la cordillera real.', 'Al sur de la cordillera del Tunari, parte de la cordillera real.'], 3],
-['¿Mencione las principales poblaciones limítrofes de Bolivia y el Brasil?', ['Cobija, Guayaramerín, San Matías, Puerto Suárez.', 'Cobija, Guaqui, San Matías, Puerto Suárez.', 'Cobija, Guayaramerín, Desaguadero, Puerto Suárez.', 'Cobija, Guayaramerín, San Matías, Yacuiba.'], 0],
-['¿Cuáles son los hitos establecidos en los límites actuales con el Paraguay?', ['Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Choqueyapu, BOLBRAPA.', 'Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Otuquis, BOLBRAPA.', 'Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Otuquis, BOLPEBRI.', 'Ninguna de las anteriores.'], 1],
-['¿Por qué cordillera está comprendida la orografía de Bolivia?', ['La cordillera de los Alpes, la cordillera occidental, cordillera real y cordillera central.', 'La cordillera de los Andes, la cordillera de los Himalaya, cordillera real y cordillera central.', 'La cordillera de los Andes, la cordillera occidental, cordillera real y cordillera central.', 'La cordillera de los Andes, la cordillera occidental, cordillera real y cordillera de los Urales.'], 2],
-['¿En cuántas secciones se divide la cordillera occidental?', ['En 3 sección norte, sección central, sección sur.', 'En 2 sección norte, sección sur.', 'En 3 sección este, sección central, sección oeste.', 'En 2 sección este, sección oeste.'], 0],
-['¿En cuántas secciones se divide la cordillera real u oriental y cuáles son?', ['En cuatro: cordillera de La Paz, frailes, chichas y Lípez.', 'En cinco: cordillera de La Paz, tres cruces, frailes, chichas y Lípez.', 'En dos: cordillera de La Paz y Lípez.', 'En tres: tres cruces, frailes, chichas y Lípez.'], 1],
-['¿Cuáles son los países que limitan con Bolivia?', ['Perú, Brasil, Chile, Uruguay, Argentina.', 'Perú, Brasil, Ecuador, Paraguay, Argentina.', 'Brasil, Chile, Paraguay, Argentina.', 'Perú, Brasil, Chile, Paraguay, Argentina.'], 3],
-['¿Cuál es el departamento de Bolivia que tiene más provincias?', ['La Paz.', 'Cochabamba.', 'Santa Cruz.', 'Beni.'], 0],
-['¿Cuáles son los ríos principales de la cuenca de La Plata?', ['Madre de Dios y Paraguay.', 'Pilcomayo y Beni.', 'Pilcomayo y Guadalquivir.', 'Pilcomayo y Paraguay.'], 3],
-['¿Cuál es el nevado más alto de Bolivia?', ['Sajama.', 'Illimani.', 'Huayna Potosí.', 'Ninguno de los anteriores.'], 0],
-['¿Cuáles son los ríos principales de la cuenca del Amazonas?', ['Pilcomayo, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Madera.', 'Mamoré, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Madera.', 'Mamoré, Madre de Dios, Choqueyapu, Orthon, Yata, Iténez o Guaporé, Beni, Madera.', 'Mamoré, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Rocha.'], 1],
-['¿A qué altitud sobre el nivel del mar se encuentra el lago Titicaca?', ['3.612 m.s.n.m.', '3.712 m.s.n.m.', '3.812 m.s.n.m.', '3.912 m.s.n.m.'], 2],
-['¿Cuál es la sede de gobierno de Bolivia?', ['Sucre.', 'Santa Cruz.', 'Chuquisaca.', 'Ninguno de los anteriores.'], 3],
-['¿Cómo se organiza Bolivia territorialmente?', ['Departamentos, provincias, municipios y territorios indígena originario campesinos.', 'Departamentos, provincias, gobernaciones y territorios indígena originario campesinos.', 'Departamentos, estados, municipios y territorios indígena originario campesinos.', 'Ninguno de los anteriores.'], 0],
-['¿Dónde nace el Río Amaru Mayu y cómo es conocido en Bolivia?', ['En Brasil, Madre de Dios.', 'En Perú, Madre de Dios.', 'En Argentina, Parapetí.', 'En el Perú, Mamoré.'], 1],
-['¿Qué departamentos abarcan la amazonia boliviana?', ['Santa Cruz, Beni, Pando y Cochabamba.', 'Santa Cruz, Beni, Pando y Oruro.', 'Santa Cruz, Beni, Pando y La Paz.', 'Santa Cruz, Beni, Pando y Tarija.'], 2],
-['¿Cómo se denomina el punto tripartito de Bolivia, Perú y Brasil?', ['BOLPEBRA.', 'BOLPABRA.', 'Cobija.', 'Desaguadero.'], 0],
-['¿Cómo se llama la reserva más grande de hierro de Bolivia y en qué provincia y departamento se encuentran?', ['MUTUN, provincia Germán Busch, departamento de Beni.', 'MUTUN, provincia Cordillera, departamento de Santa Cruz.', 'MUTUN, provincia Germán Busch, departamento de Santa Cruz.', 'MUTUN, provincia Germán Busch, departamento de Chuquisaca.'], 2],
-['¿Dónde se encuentran las ruinas de Tiwanaku?', ['En el departamento de La Paz, Bolivia, a 15 km al sudeste del lago Poopó.', 'En el departamento de Oruro, Bolivia, a 15 km al sudeste del lago Titicaca.', 'En el departamento de Potosí, Bolivia, a 15 km al sudeste del lago Poopó.', 'En el departamento de La Paz, Bolivia, a 15 km al sudeste del lago Titicaca.'], 3],
-['¿Cuál es la mina más grande de Bolivia?', ['Mina San Cristóbal.', 'Mina Caracoles.', 'Mina Viriloco.', 'Mina San Benito.'], 0],
-['¿En qué meridianos se encuentra Bolivia?', ['Meridianos 51° 26\' y 69° 38\' de longitud occidental del meridiano de Greenwich.', 'Meridianos 57° 26\' y 69° 38\' de longitud occidental del meridiano de Greenwich.', 'Meridianos 59° 26\' y 69° 38\' de longitud occidental del meridiano de Greenwich.', 'Meridianos 52° 26\' y 69° 38\' de longitud occidental del meridiano de Greenwich.'], 1],
-['¿En qué paralelos se encuentra Bolivia?', ['Paralelos 5° 38\' y 22° 53\' de latitud sur.', 'Paralelos 3° 38\' y 22° 53\' de latitud sur.', 'Paralelos 9° 38\' y 22° 53\' de latitud sur.', 'Paralelos 4° 38\' y 22° 53\' de latitud sur.'], 2],
-['¿Dónde está ubicado el lago Poopó?', ['Departamento de Oruro.', 'Departamento de La Paz.', 'Departamento de Potosí.', 'Departamento de Cochabamba.'], 0],
-['¿Cuáles son los ríos que alimentan el caudal del Lago Titicaca?', ['Río Desaguadero, Choqueyapu, Ichoa y Luribay.', 'Río Desaguadero, Zongo, Ichoa y Luribay.', 'Río Desaguadero, Zongo, Mamoré y Luribay.', 'Río Parapetí, Zongo, Ichoa y Luribay.'], 1],
-['¿Cuál es el río más largo de Bolivia?', ['Mamoré.', 'Pilcomayo.', 'Parapetí.', 'Madre de Dios.'], 0],
-['¿Cuáles son los principales salares de Bolivia?', ['Mutún y Uyuni.', 'Coipasa y Huanuni.', 'Coipasa y Uyuni.', 'Ninguno de los anteriores.'], 2],
-['¿En qué provincia se encuentran los manantiales del Silala?', ['Provincia Sud Lípez.', 'Provincia Nor Lípez.', 'Provincia Nor Chichas.', 'Provincia Sur Chichas.'], 0],
-['¿Dónde se encuentra el parque nacional Eduardo Abaroa?', ['Departamento de Tarija.', 'Departamento de Potosí.', 'Departamento de Cochabamba.', 'Departamento de Oruro.'], 1],
-['¿Dónde se encuentra el parque nacional Amboró?', ['Departamento de Tarija.', 'Departamento de Potosí.', 'Departamento de Cochabamba.', 'Departamento de Santa Cruz.'], 3],
-['¿Dónde se encuentra el parque nacional Tunari?', ['Departamento de Tarija.', 'Departamento de Potosí.', 'Departamento de Cochabamba.', 'Departamento de Santa Cruz.'], 2],
-['¿Qué institución del estado está encargada de la elaboración de la cartografía nacional?', ['Instituto Geográfico Militar.', 'Gobierno Autónomo de La Paz.', 'Instituto de Investigación Forense.', 'Policía Nacional.'], 0],
-['¿En qué lugar habitan los Yuracares?', ['En las riberas de los afluentes del río Mamoré.', 'En el chaco boreal, río Pilcomayo.', 'Bosque tropical en los llanos de Moxos.', 'Llanos chiquitanos.'], 0],
-['¿En qué lugar habitan los Weenhayek?', ['En las riberas de los afluentes del río Mamoré.', 'En el chaco boreal, río Pilcomayo.', 'Bosque tropical en los llanos de Moxos.', 'Llanos chiquitanos.'], 1],
-['¿Cuál es la superficie del salar de Uyuni?', ['11.582 km².', '12.582 km².', '10.582 km².', '8.582 km².'], 2],
-['¿A qué altitud se encuentra el salar de Uyuni?', ['5.653 m.s.n.m.', '4.653 m.s.n.m.', '2.653 m.s.n.m.', '3.653 m.s.n.m.'], 3],
-['¿Cuál es la capital de Bolivia?', ['La Paz.', 'Chuquisaca.', 'Sucre.', 'Cochabamba.'], 2],
-['¿Cuál es la superficie de Bolivia al nacer a la vida independiente?', ['2.163.769 km².', '2.563.769 km².', '2.463.769 km².', '2.363.769 km².'], 3],
-['¿Qué población indígena habita en las cercanías de la ciudad de Chuquisaca?', ['Tarabuco.', 'Aymara.', 'Quechua.', 'Chiquitano.'], 0],
-['¿Qué superficie tiene el departamento de Chuquisaca?', ['52.524 km².', '51.524 km².', '53.524 km².', '54.524 km².'], 0],
-['¿A qué ciudad se denomina la ciudad de los cuatro nombres?', ['La Paz.', 'Potosí.', 'Oruro.', 'Sucre.'], 3],
-['¿En cuántas provincias se divide el departamento de Chuquisaca?', ['10 provincias.', '12 provincias.', '14 provincias.', '9 provincias.'], 0],
-['¿En qué departamento se encuentran las provincias de Oropeza, Zudáñez y Nor Cinti?', ['Departamento de Potosí.', 'Departamento de Chuquisaca.', 'Departamento de Cochabamba.', 'Departamento de Oruro.'], 1],
-['La principal producción económica del departamento de Chuquisaca está relacionada con:', ['Ganadería.', 'Agricultura.', 'Minería.', 'Producción Piscícola.'], 0],
-['¿Cuál es la montaña más alta del departamento de La Paz?', ['Illimani.', 'Huayna Potosí.', 'Illampu.', 'Mururata.'], 0],
-['¿En qué cuenca se encuentra y cuál es la longitud del río Desaguadero?', ['Cuenca del Pilaya 360 km.', 'Cuenca de La Plata 360 km.', 'Cuenca del Amazonas 360 km.', 'Cuenca Central o Lacustre 360 km.'], 3],
-['¿En cuántas provincias se divide el departamento de La Paz?', ['18 provincias.', '20 provincias.', '21 provincias.', '15 provincias.'], 1],
-['¿Cuál es la capital de la provincia Ingavi del departamento de La Paz?', ['Laja.', 'El Alto.', 'Viacha.', 'Caranavi.'], 2],
-['¿Dónde se encuentra el nevado Huayna Potosí?', ['Ubicado en la cordillera real u oriental en el departamento de La Paz.', 'Ubicado en la cordillera occidental en el departamento de Oruro.', 'Ubicado en la cordillera real u oriental en el departamento de Potosí.', 'Ninguno de los anteriores.'], 0],
-['¿En qué departamento se encuentran las provincias Franz Tamayo, Murillo y Aroma?', ['Departamento de Cochabamba.', 'Departamento de La Paz.', 'Departamento de Oruro.', 'Departamento de Potosí.'], 1],
-['¿Cuál es la extensión del departamento de La Paz?', ['333.985 kilómetros cuadrados.', '33.985 kilómetros cuadrados.', '133.985 kilómetros cuadrados.', '233.985 kilómetros cuadrados.'], 2],
-['¿Cuáles son los principales ríos del departamento de La Paz?', ['Río Desaguadero, río Mamoré, río Beni.', 'Río Desaguadero, río Mapiri, río Madera.', 'Río Desaguadero, río Mapiri, río Rocha.', 'Río Desaguadero, río Mapiri, río Beni.'], 3],
-['¿Cuál es la superficie del departamento de Tarija?', ['37.623 kilómetros cuadrados.', '38.623 kilómetros cuadrados.', '35.623 kilómetros cuadrados.', '31.623 kilómetros cuadrados.'], 0],
-['¿Cuántas provincias tiene el departamento de Tarija?', ['7 provincias.', '6 provincias.', '8 provincias.', '5 provincias.'], 1],
-['¿Cuáles son los ríos más importantes del departamento de Tarija?', ['Río Parapetí, río Guadalquivir, río Bermejo.', 'Río Desaguadero, río Guadalquivir, río Bermejo.', 'Río Pilcomayo, río Guadalquivir, río Bermejo.', 'Río Mamoré, río Guadalquivir, río Bermejo.'], 2],
-['¿En qué departamento se encuentran las provincias Gran Chaco y Aniceto Arce?', ['La Paz.', 'Cochabamba.', 'Chuquisaca.', 'Tarija.'], 3],
-['¿Dónde se encuentra la ciudad de Villamontes?', ['La Paz.', 'Cochabamba.', 'Chuquisaca.', 'Tarija.'], 3],
-['¿Cuáles son los cerros más importantes del departamento de Tarija?', ['Cerro Aguarague, cerro Sicasica, cerro Pizarro, cerro Callejas, cerro Colorado.', 'Cerro Aguarague, cerro Sajama, cerro Pizarro, cerro Callejas, cerro Colorado.', 'Cerro Aguarague, cerro Sicasica, cerro Illampu, cerro Callejas, cerro Colorado.', 'Cerro Aguarague, cerro Sicasica, cerro Pizarro, cerro Callejas, cerro Letanías.'], 0],
-['¿En qué departamento se encuentra el salar de Coipasa?', ['La Paz.', 'Oruro.', 'Potosí.', 'Tarija.'], 1],
-['¿Cuántas provincias tiene el departamento de Oruro?', ['8 provincias.', '9 provincias.', '14 provincias.', '16 provincias.'], 3],
-['¿Cuál es la superficie del departamento de Oruro?', ['53.523 kilómetros cuadrados.', '53.623 kilómetros cuadrados.', '53.723 kilómetros cuadrados.', '53.823 kilómetros cuadrados.'], 0],
-['¿En qué departamento se encuentra la provincia Sabaya, Poopó, Mejillones?', ['La Paz.', 'Potosí.', 'Oruro.', 'Cochabamba.'], 2],
-['El lago Poopó es el tercer lago más grande de Bolivia, ¿en qué departamento está ubicado?', ['Cochabamba.', 'Tarija.', 'Potosí.', 'Oruro.'], 3],
-['Oruro es un departamento de Bolivia y dentro de sus principales fuentes de ingreso está:', ['Minería, Ganadería, industria petrolera, turismo, comercio.', 'Minería, Agricultura, turismo, comercio.', 'Minería, industria forestal, Agricultura, turismo, comercio.', 'Minería, Ganadería, Agricultura, turismo, comercio.'], 3],
-['Tiene una superficie 370.621 kilómetros cuadrados, ocupa el 34% del territorio boliviano.', ['Beni.', 'La Paz.', 'Santa Cruz.', 'Tarija.'], 2],
-['¿Cuántas provincias tiene el departamento de Santa Cruz?', ['15 provincias.', '12 provincias.', '16 provincias.', '18 provincias.'], 0],
-['¿Cuáles son los principales ríos del departamento de Santa Cruz?', ['Río Chapare, río Piraí, río Ichilo, río Parapetí.', 'Río Grande, río Piraí, río Ichilo, río Parapetí.', 'Río Grande, río Piraí, río Ichilo, río Pilcomayo.', 'Río Grande, río Rocha, río Ichilo, río Parapetí.'], 1],
-['¿En qué departamento se encuentra la provincia Cordillera, Chiquitos, Velasco?', ['Beni.', 'La Paz.', 'Santa Cruz.', 'Tarija.'], 2],
-['¿En qué departamento se encuentra el parque nacional Noel Kempff Mercado?', ['Beni.', 'La Paz.', 'Santa Cruz.', 'Tarija.'], 2],
-['¿Cuál es la capital del departamento de Santa Cruz?', ['Santa Cruz de la Sierra.', 'Montero.', 'Santa Cruz.', 'Warnes.'], 0],
-['¿Cuántas provincias tiene el departamento de Cochabamba?', ['15 provincias.', '12 provincias.', '16 provincias.', '18 provincias.'], 2],
-['¿Cuáles son los principales ríos del departamento de Cochabamba?', ['Río Rocha, río Mizque, río Arque.', 'Río Rocha, río Mamoré, río Arque.', 'Río Cochabamba, río Mizque, río Arque.', 'Río Rocha, río Mizque, río Desaguadero.'], 0],
-['¿En qué departamento se encuentran las provincias Arani, Mizque y Carrasco?', ['Cochabamba.', 'Tarija.', 'Potosí.', 'Oruro.'], 0],
-['¿Qué superficie tiene el departamento de Cochabamba?', ['55.431 km².', '55.631 km².', '55.331 km².', '55.731 km².'], 1],
-['¿Cuáles son los cerros más importantes del departamento de Cochabamba?', ['Illampu, San Pedro, Machacamarca, Ushpa Ushpa.', 'Tunari, San Pedro, Sajama, Ushpa Ushpa.', 'Tunari, San Pedro, Machacamarca, Ushpa Ushpa.', 'Tunari, San Pedro, Machacamarca, Muela del Diablo.'], 2],
-['¿Cuál es la capital del departamento de Pando?', ['Cobija.', 'Trinidad.', 'Nicolás Suárez.', 'Madre de Dios.'], 0],
-['¿En qué departamento se encuentran las provincias Madre de Dios y Federico Román?', ['Beni.', 'La Paz.', 'Santa Cruz.', 'Pando.'], 3],
-['¿Cuántas provincias tiene el departamento de Pando?', ['4 provincias.', '3 provincias.', '5 provincias.', '6 provincias.'], 2],
-['¿Qué superficie tiene el departamento de Pando?', ['63.527 kilómetros cuadrados.', '63.427 kilómetros cuadrados.', '63.727 kilómetros cuadrados.', '63.827 kilómetros cuadrados.'], 3],
-['¿Cuáles son los ríos más importantes del departamento de Pando?', ['Madre de Dios, Tahuamanu, Manuripi, Abuná.', 'Mapiri, Tahuamanu, Manuripi, Abuná.', 'Madre de Dios, Tahuamanu, Mamoré, Abuná.', 'Madre de Dios, Rocha, Manuripi, Abuná.'], 0],
-['¿Cuántas provincias tiene el departamento de Potosí?', ['16 provincias.', '12 provincias.', '20 provincias.', '15 provincias.'], 0],
-['¿Qué superficie tiene el departamento de Potosí?', ['128.218 kilómetros cuadrados.', '118.218 kilómetros cuadrados.', '138.218 kilómetros cuadrados.', '148.218 kilómetros cuadrados.'], 1],
-['¿En qué departamento se encuentran las provincias Tomás Frías y Chayanta?', ['Cochabamba.', 'Tarija.', 'Potosí.', 'Oruro.'], 2],
-['¿En qué departamento de Bolivia se encuentra la mina San Cristóbal?', ['Cochabamba.', 'Tarija.', 'Potosí.', 'Oruro.'], 2],
-['¿Cuántas provincias tiene el departamento de Beni?', ['10 provincias.', '7 provincias.', '5 provincias.', '8 provincias.'], 3],
-['¿Cuáles son los ríos más importantes del departamento de Beni?', ['Mamoré, Beni, Iténez, Yacuma.', 'Mapiri, Beni, Iténez, Yacuma.', 'Mamoré, Beni, Iténez, Rocha.', 'Mamoré, Beni, Pilcomayo, Yacuma.'], 0],
-['¿En qué departamento se encuentran las provincias José Ballivián y Moxos?', ['Cochabamba.', 'Beni.', 'Potosí.', 'Oruro.'], 1],
-['¿Qué superficie tiene el departamento de Beni?', ['214.564 kilómetros cuadrados.', '216.564 kilómetros cuadrados.', '211.564 kilómetros cuadrados.', '213.564 kilómetros cuadrados.'], 3]
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;         // Duración del examen (minutos)
+var QUESTIONS_PER_EXAM = 30;   // Preguntas por intento
+
+/* ============================================================
+   BANCO DE PREGUNTAS (200)
+   Formato: [texto, [opciónA, opciónB, opciónC, opciónD], índice_correcto]
+   índice: 0=A, 1=B, 2=C, 3=D
+   ============================================================ */
+var questions = [
+  /* (1)   */ ["¿Qué es la Geografía?", ["La Geografía es la Ciencia que estudia el mapeo de las aguas de la tierra, así como los fenómenos naturales y humanos que la afectan.", "La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos naturales y artificiales que la afectan.", "La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos naturales y humanos que la afectan.", "La Geografía es la Ciencia que estudia y analiza la superficie terrestre, así como los fenómenos económicos y humanos que la afectan."], 2],
+  /* (2)   */ ["¿Cuáles son las ramas de la hidrografía?", ["Hidrografía continental, Hidrografía oceánica.", "Hidrografía marítima, Hidrografía oceánica.", "Hidrografía continental, Hidrografía lacustre.", "Ninguna de las anteriores."], 0],
+  /* (3)   */ ["¿Qué es un Istmo?", ["Franja de tierra que une dos territorios.", "Extensión de tierra rodeada por agua.", "Porción de mar que se adentra en la costa.", "Ninguno de los anteriores."], 0],
+  /* (4)   */ ["¿Qué es una península?", ["Porción de mar que se adentra en la costa.", "Extensión de tierra rodeada por agua excepto por una parte que está conectada al continente.", "Franja de tierra que une dos territorios.", "Conjunto de islas que se adentran entre sí."], 1],
+  /* (5)   */ ["¿Qué es un archipiélago?", ["Conjunto de islas próximas entre sí.", "Porción de mar que se adentra en la costa.", "Franja de tierra que une dos territorios.", "Ninguna de las anteriores."], 0],
+  /* (6)   */ ["¿Cuál es el país más pequeño de Norteamérica?", ["Groenlandia.", "Alaska.", "Canadá.", "México."], 0],
+  /* (7)   */ ["¿Cuál es la montaña más alta del mundo?", ["Monte Etna.", "Hekla.", "Everest.", "Popocatépetl."], 2],
+  /* (8)   */ ["¿Cuántos Países tiene Sudamérica?", ["10 Países.", "12 Países.", "9 Países.", "11 Países."], 1],
+  /* (9)   */ ["¿Cuál es la capital de Uruguay?", ["Montevideo.", "Asunción.", "Quito.", "Ninguno de los anteriores."], 0],
+  /* (10)  */ ["¿Cuál es el país más pequeño de Europa?", ["España.", "Italia.", "Portugal.", "Ciudad del Vaticano."], 3],
+  /* (11)  */ ["¿Cuál es el río más largo de Europa?", ["Río Sena.", "Río Volga.", "Río Misisipi.", "Río Amazonas."], 1],
+  /* (12)  */ ["¿Cuántos países reconocidos internacionalmente tiene Europa?", ["52 Países.", "34 Países.", "44 Países.", "Ninguno de los anteriores."], 2],
+  /* (13)  */ ["¿Cuál es la capital de Países Bajos?", ["Colonia.", "Bruselas.", "Róterdam.", "Ámsterdam."], 3],
+  /* (14)  */ ["¿En qué continente se encuentra Croacia?", ["Asia.", "América.", "Europa.", "África."], 2],
+  /* (15)  */ ["¿Cuál es la capital de Suiza?", ["Berna.", "Zúrich.", "Geneva.", "Berlín."], 0],
+  /* (16)  */ ["¿Cuál es la capital de Alemania?", ["Madrid.", "Hamburgo.", "Múnich.", "Berlín."], 3],
+  /* (17)  */ ["¿Cuál es la longitud del río Danubio?", ["3.850 km.", "4.850 km.", "2.850 km.", "2.880 km."], 2],
+  /* (18)  */ ["¿En qué continente se encuentra Jordania?", ["Asia.", "Europa.", "América.", "Ninguna de las anteriores."], 0],
+  /* (19)  */ ["¿Con cuántos países limita China?", ["12 Países.", "14 Países.", "5 Países.", "8 Países."], 1],
+  /* (20)  */ ["¿Cuáles son las zonas climáticas que presenta Asia?", ["Zona ártica, zona desértica y zona mediterránea.", "Zona tropical y zona desértica.", "Zona ártica, zona desértica, zona mediterránea y zona monzónica.", "Ninguna de las anteriores."], 2],
+  /* (21)  */ ["¿Cuál es el lago con la superficie más extensa del mundo?", ["Lago Tanganica.", "Mar Muerto.", "Mar Caspio.", "Lago Titicaca."], 2],
+  /* (22)  */ ["¿A qué continente pertenece Arabia Saudita?", ["Asia.", "Europa.", "África.", "Ninguno de los anteriores."], 0],
+  /* (23)  */ ["¿Cuál es la capital de China?", ["Shanghái.", "Pekín.", "Hong Kong.", "Wuhan."], 1],
+  /* (24)  */ ["Marca la frontera entre China y Rusia en el noreste de Asia.", ["Río Yeniséi.", "Río Mekong.", "Río Amur.", "Río Misisipi."], 2],
+  /* (25)  */ ["¿En qué continente se encuentra el desierto del Sahara?", ["África.", "América.", "Europa.", "Asia."], 0],
+  /* (26)  */ ["El río Nilo es uno de los ríos más largos del mundo, se encuentra en el continente africano y tiene una extensión de:", ["6.650 kilómetros.", "4.800 kilómetros.", "2.650 kilómetros.", "10.600 kilómetros."], 0],
+  /* (27)  */ ["¿Cuál es la capital de Egipto?", ["Alejandría.", "El Cairo.", "Costa de Marfil.", "Etiopía."], 1],
+  /* (28)  */ ["¿En qué país se encuentra el monte Kilimanjaro?", ["Etiopía.", "Kenia.", "Tanzania.", "Nigeria."], 2],
+  /* (29)  */ ["¿Cuál es el lago más grande de África?", ["Lago Tanganica.", "Lago Malawi.", "Lago Chad.", "Lago Victoria."], 3],
+  /* (30)  */ ["¿Cuántos países tiene África?", ["42 Países.", "54 Países.", "60 Países.", "88 Países."], 1],
+  /* (31)  */ ["África está rodeada por varios mares, los principales son:", ["El mar Mediterráneo, el mar Rojo, el océano Índico y el océano Atlántico.", "El mar Muerto, el mar Rojo, el océano Pacífico y el océano Atlántico.", "El mar Mediterráneo, el mar Rojo, el océano Índico y el océano Pacífico.", "El mar Mediterráneo, el océano Índico y el océano Atlántico."], 0],
+  /* (32)  */ ["Algunos de los desiertos más prominentes de África son:", ["Desierto del Sahara, desierto de Tabernas, desierto de Karoo.", "Desierto del Sahara, desierto del Kalahari, desierto de Karoo.", "Desierto del Sahara, desierto del Kalahari, desierto de Bardenas.", "Desierto de Atacama, desierto del Kalahari, desierto de Karoo."], 1],
+  /* (33)  */ ["África es uno de los continentes con ríos más grandes, algunos de ellos son:", ["Río Misisipi, Río Congo, Río Níger, Río Zambeze.", "Río Nilo, Río Mekong, Río Níger, Río Zambeze.", "Río Nilo, Río Congo, Río Indo, Río Zambeze.", "Río Nilo, Río Congo, Río Níger, Río Zambeze."], 3],
+  /* (34)  */ ["Los siguientes países pertenecen al continente africano:", ["Chipre, Libia, Nigeria, Egipto.", "Etiopía, Libia, Armenia, Egipto.", "Etiopía, Libia, Nigeria, Nepal.", "Etiopía, Libia, Nigeria, Egipto."], 3],
+  /* (35)  */ ["¿Cuáles son las regiones en la que se divide el continente de Oceanía?", ["Australasia, Melanesia, Micronesia y Polinesia.", "Australasia y Melanesia.", "Australasia, Melanesia y Micronesia.", "Ninguna de las anteriores."], 0],
+  /* (36)  */ ["¿Cuáles son las tres capas principales que presenta el sol?", ["Núcleo.", "Fotosfera.", "Atmósfera.", "Todas las anteriores."], 3],
+  /* (37)  */ ["¿Cuáles son los grupos étnicos del continente de Oceanía?", ["Indígenas y Euroasiáticos.", "Indígenas, Melanesios, Polinesios y Euroasiáticos.", "Indígenas, Melanesios y Polinesios.", "Ninguna de las anteriores."], 1],
+  /* (38)  */ ["¿Cuáles son las regiones en las que se divide la Antártida?", ["Región Oriental y Región Occidental.", "Región Tropical y Región Occidental.", "Región Oriental y Región Central.", "Región Tropical y Región Central."], 0],
+  /* (39)  */ ["¿Cuál es la montaña de mayor altitud en la Antártida?", ["Everest.", "Macizo Vinson.", "Himalaya.", "Sajama."], 1],
+  /* (40)  */ ["¿Cuál es el país más grande de Oceanía?", ["Nueva Zelanda.", "China.", "Australia.", "India."], 2],
+  /* (41)  */ ["¿Cuál es la capital de Australia?", ["Wellington.", "Canberra.", "Filipinas.", "Micronesia."], 1],
+  /* (42)  */ ["¿Cuál es la extensión en kilómetros cuadrados de la Antártida?", ["15 millones de kilómetros cuadrados.", "20 millones de kilómetros cuadrados.", "14 millones de kilómetros cuadrados.", "10 millones de kilómetros cuadrados."], 2],
+  /* (43)  */ ["Es un proceso de recopilación sistemática de información demográfica, económica y social sobre una población determinada en un lugar y momento específico.", ["Padrón.", "Registro civil.", "Censo.", "Encuesta."], 2],
+  /* (44)  */ ["Rama de la geografía que se ocupa del estudio de la interrelación entre la organización jurídico-política de la sociedad y el espacio geográfico o territorio que ocupa.", ["Geografía política.", "Geografía económica.", "Geografía demográfica.", "Geografía biológica."], 0],
+  /* (45)  */ ["Rama de la geografía que estudia la distribución de organismos vivos en el espacio geográfico.", ["Geografía política.", "Geografía económica.", "Geografía demográfica.", "Geografía biológica."], 3],
+  /* (46)  */ ["Rama de la geografía que se enfoca en el estudio de la superficie terrestre y sus características naturales.", ["Geografía política.", "Geografía económica.", "Geografía física.", "Geografía biológica."], 2],
+  /* (47)  */ ["¿Qué nombre recibe el punto de la elíptica más cercana al sol?", ["Perihelio.", "Vértice.", "Órbita.", "Eclipse."], 0],
+  /* (48)  */ ["¿Qué significa el meridiano de Greenwich?", ["Meridiano a partir del cual se miden las latitudes.", "Meridiano a partir del cual se miden las longitudes.", "Meridiano a partir del cual se miden los grados.", "Meridiano a partir del cual se miden las dimensiones."], 1],
+  /* (49)  */ ["¿Cuál es el río más grande del mundo?", ["Río Nilo.", "Río Amazonas.", "Río Misisipi.", "Río Sena."], 1],
+  /* (50)  */ ["¿Quién descubrió el río Amazonas y qué países abarca?", ["Francisco de Orellana, Bolivia, Perú, Venezuela, Brasil, Ecuador.", "Francisco de Gamarra, Bolivia, Perú, Colombia, Brasil, Chile.", "Francisco de Orellana, Bolivia, Perú, Colombia, Brasil, Ecuador.", "Francisco de Ortega, Bolivia, Perú, Colombia, Brasil, Ecuador."], 2],
+  /* (51)  */ ["¿Dónde se encuentra el río de La Plata?", ["Argentina y Uruguay.", "Brasil y Argentina.", "Bolivia y Argentina.", "Argentina y Chile."], 0],
+  /* (52)  */ ["¿Qué entiende por movimiento de rotación de la tierra?", ["Es el movimiento de la tierra que consiste en girar alrededor del sol.", "Es el movimiento de la tierra que consiste en girar sobre su propio eje.", "Es el movimiento del sol que consiste en girar sobre su propio eje.", "Es el movimiento de la luna que consiste en girar sobre la tierra."], 1],
+  /* (53)  */ ["¿Qué entiende por movimiento de traslación de la tierra?", ["Es el movimiento del sol que gira alrededor de la tierra.", "Es el movimiento de la tierra que consiste en girar sobre su propio eje.", "Es el movimiento de la tierra que gira alrededor del sol.", "Es el movimiento de la luna que consiste en girar sobre la tierra."], 2],
+  /* (54)  */ ["¿En cuántos continentes está dividido el planeta tierra?", ["4 continentes.", "7 continentes.", "3 continentes.", "5 continentes."], 1],
+  /* (55)  */ ["¿Cuál es la cordillera más larga del mundo?", ["Cordillera de Los Andes.", "Cordillera de Los Himalaya.", "Cordillera de Los Alpes.", "Cordillera del Atlas."], 0],
+  /* (56)  */ ["Se refiere al estudio y descripción de las características físicas de la superficie terrestre, relacionadas con montañas, colinas, etc.", ["Hidrografía.", "Geografía.", "Orografía.", "Biografía."], 2],
+  /* (57)  */ ["Rama de la geografía que se encarga del estudio y descripción de las aguas de la tierra.", ["Hidrografía.", "Geografía.", "Orografía.", "Biografía."], 0],
+  /* (58)  */ ["Es el estudio detallado de las características del terreno incluyendo la medición de elevaciones y mapas.", ["Orografía.", "Topografía.", "Altimetría.", "Geopolítica."], 1],
+  /* (59)  */ ["La introducción de sustancias nocivas en los cuerpos de agua, que pueden tener grandes impactos ambientales.", ["Conservación de recursos hídricos.", "Ciclo del agua.", "Contaminación del agua.", "Erosión fluvial."], 2],
+  /* (60)  */ ["Proceso por el cual el agua de los ríos y arroyos desgasta y transporta sedimentos, influyendo en la forma de los paisajes.", ["Conservación de recursos hídricos.", "Ciclo del agua.", "Contaminación del agua.", "Erosión fluvial."], 3],
+  /* (61)  */ ["Forma en que la tierra se eleva o desciende, lo que puede dar lugar a montañas, cordilleras, llanuras y otro tipo de paisajes.", ["Relieve.", "Altitud.", "Topografía.", "Ninguno de los anteriores."], 0],
+  /* (62)  */ ["El estudio de la tierra se divide en capas, ¿cuáles son estas?", ["Atmósfera, Hidrosfera.", "Geosfera, Atmósfera, Hidrosfera.", "Geosfera, Atmósfera.", "Ninguna de las anteriores."], 1],
+  /* (63)  */ ["Se trata de la composición, la dinámica y los fenómenos meteorológicos.", ["Geosfera.", "Hidrosfera.", "Atmósfera.", "Ninguno de los anteriores."], 2],
+  /* (64)  */ ["Comprende toda el agua en la tierra, ya sea océanos, ríos, lagos, glaciares, etc.", ["Geosfera.", "Hidrosfera.", "Atmósfera.", "Ninguno de los anteriores."], 1],
+  /* (65)  */ ["Se refiere a la parte sólida de la tierra incluyendo corteza terrestre, el manto y el núcleo.", ["Geosfera.", "Hidrosfera.", "Atmósfera.", "Ninguno de los anteriores."], 0],
+  /* (66)  */ ["Estudia las características de nuestro planeta, atmosféricas, hidrológicas, geológicas, biológicas y humanas.", ["Geografía particular.", "Geografía general.", "Geografía topográfica.", "Ninguna de las anteriores."], 1],
+  /* (67)  */ ["Estudia al ser humano a través de su distribución espacial, su organización territorial y su actividad económica.", ["Geografía personal.", "Geografía mixta.", "Geografía humana.", "Ninguna de las anteriores."], 2],
+  /* (68)  */ ["¿Qué estudia la geografía política?", ["La extensión.", "Los límites.", "Administración de los estados.", "Todos los anteriores."], 3],
+  /* (69)  */ ["¿Cuáles son los dos movimientos que realiza la tierra?", ["Rotación y traslación.", "Sístole y diástole.", "Rotación y transportación.", "Giratorio y traslado."], 0],
+  /* (70)  */ ["¿Cuántos planetas tiene el sistema solar?", ["Nueve planetas.", "Ocho planetas.", "Siete planetas.", "Diez planetas."], 1],
+  /* (71)  */ ["¿Cuáles son los planetas del sistema solar?", ["Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano, Neptuno y Plutón.", "Mercurio, Venus, Tierra, Marte, Júpiter, Plutón, Urano y Neptuno.", "Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Urano y Neptuno.", "Mercurio, Venus, Tierra, Marte, Júpiter, Saturno, Plutón y Neptuno."], 2],
+  /* (72)  */ ["¿Cuál es el planeta más alejado del sistema solar?", ["Mercurio.", "Venus.", "Saturno.", "Neptuno."], 3],
+  /* (73)  */ ["¿Cuál es el planeta que se encuentra más cerca del sol?", ["Mercurio.", "Venus.", "Saturno.", "Neptuno."], 0],
+  /* (74)  */ ["Estrella gigante compuesta principalmente de hidrógeno y helio que es la fuente primaria de energía para el sistema solar.", ["Luna.", "Asteroide.", "Cometa.", "El sol."], 3],
+  /* (75)  */ ["Objetos compuestos principalmente de helio, polvo y roca que viajan a través del espacio.", ["Luna.", "Asteroides.", "Cometas.", "El sol."], 2],
+  /* (76)  */ ["Región más allá de la órbita de Neptuno que alberga numerosos objetos helados incluyendo Plutón y otros planetas enanos.", ["Luna.", "Asteroides.", "Cometas.", "Cinturón de Kuiper."], 3],
+  /* (77)  */ ["El interior del planeta Tierra se divide en las siguientes capas:", ["Núcleo, manto y corteza.", "Núcleo y corteza.", "Núcleo, tierra y corteza.", "Manto y corteza."], 0],
+  /* (78)  */ ["Gran unidad de paisaje ecológico definido por sus características climáticas y biológicas distintivas.", ["Medio ambiente.", "Bioma.", "Entorno ecológico.", "Ninguna de las anteriores."], 1],
+  /* (79)  */ ["Biomas áridos con escasa precipitación y temperatura extremadamente alta durante el día y bajas durante la noche.", ["Bosque tropical.", "Bosque templado.", "Desierto.", "Pradera."], 2],
+  /* (80)  */ ["Caracterizado por altas temperaturas y lluvias abundantes durante todo el año, estos biomas albergan una increíble diversidad de especies de plantas y animales.", ["Bosque tropical.", "Bosque templado.", "Tundra.", "Pradera."], 0],
+  /* (81)  */ ["Biomas fríos y secos con vegetación baja y adaptada al clima frío, que se encuentran en regiones polares.", ["Bosque tropical.", "Bosque templado.", "Tundra.", "Desierto."], 2],
+  /* (82)  */ ["¿Qué es la línea del Ecuador?", ["Es una línea imaginaria que rodea la tierra de manera vertical, dividiéndola en dos hemisferios, norte y sur.", "Es una línea imaginaria que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, este y oeste.", "Es una línea natural que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, norte y sur.", "Es una línea imaginaria que rodea la tierra de manera horizontal, dividiéndola en dos hemisferios, norte y sur."], 3],
+  /* (83)  */ ["¿Qué son las aguas lénticas?", ["Son aguas que cuentan con movimiento o corriente.", "Son aguas que no cuentan con movimiento o corriente.", "Son aguas que tienen una velocidad menor a los 5 litros por segundo.", "Ninguna de las anteriores."], 1],
+  /* (84)  */ ["¿Qué son las aguas lóticas?", ["Son aguas que cuentan con movimiento o corriente en una dirección definida.", "Son aguas que no cuentan con movimiento o corriente.", "Son aguas que tienen una velocidad menor a los 5 litros por segundo.", "Ninguna de las anteriores."], 0],
+  /* (85)  */ ["¿Qué son los lagos?", ["Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.", "Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.", "Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.", "Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra."], 0],
+  /* (86)  */ ["¿Qué son los ríos?", ["Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.", "Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.", "Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.", "Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra."], 1],
+  /* (87)  */ ["¿Qué son las lagunas?", ["Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.", "Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.", "Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.", "Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra."], 2],
+  /* (88)  */ ["¿Qué son los océanos?", ["Son cuerpos de agua dulce o salina que se encuentran en depresiones naturales de la superficie terrestre.", "Son cursos de agua que fluyen de manera constante en una dirección específica desde su origen.", "Son cuerpos de agua poco profundos y generalmente de tamaño reducido que se encuentran en diversas regiones.", "Son vastos cuerpos de agua salada que cubren la mayor parte de la superficie de la tierra."], 3],
+  /* (89)  */ ["¿Cuál es el ciclo de vida de los seres vivos?", ["Nacen, crecen, se reproducen y mueren.", "Nacen, crecen y mueren.", "Nacen, desarrollan, se reproducen y mueren.", "Ninguna de las anteriores."], 0],
+  /* (90)  */ ["¿Cuáles son los reinos en el cual se clasifican los seres vivos?", ["Reino animal, reino vegetal, reino protista y reino de las bacterias.", "Reino animal, reino vegetal, reino de los hongos, reino protista y reino de las bacterias.", "Reino animal, reino vegetal, reino de los hongos y reino de las bacterias.", "Reino animal, reino orgánico, reino de los hongos, reino protista y reino de las bacterias."], 1],
+  /* (91)  */ ["Este grupo incluye a todos los organismos multicelulares que son heterótrofos, lo que significa que obtienen sus alimentos al consumir otros organismos.", ["Reino animal.", "Reino vegetal.", "Reino de los hongos.", "Reino de las bacterias."], 0],
+  /* (92)  */ ["Este reino abarca a los organismos multicelulares que son autótrofos, lo que significa que pueden producir su propio alimento mediante la fotosíntesis:", ["Reino animal.", "Reino vegetal.", "Reino de los hongos.", "Reino de las bacterias."], 1],
+  /* (93)  */ ["Son organismos eucariotas, que se alimentan de otros organismos descomponiendo materia orgánica.", ["Reino animal.", "Reino vegetal.", "Reino de los hongos.", "Reino de las bacterias."], 2],
+  /* (94)  */ ["Es la parte de la geografía física que estudia las poblaciones humanas, en lo que respecta a su tamaño, estructura, distribución, densidad y crecimiento.", ["Censo.", "Geografía humana.", "Topografía.", "Demografía."], 3],
+  /* (95)  */ ["El crecimiento global de la población en el mundo es:", ["7,8 mil millones de personas.", "15,8 mil millones de personas.", "12,8 mil millones de personas.", "5,8 mil millones de personas."], 0],
+  /* (96)  */ ["La estructura de edad de la población en el mundo varía significativamente de una región a otra y está influenciada por factores económicos, sociales y de salud, los continentes con menor edad y mayor edad son:", ["África con menor edad y Europa con mayor edad.", "América con menor edad y Europa con mayor edad.", "África con menor edad y América con mayor edad.", "África con menor edad y Asia con mayor edad."], 0],
+  /* (97)  */ ["¿Qué continente tiene mayor tasa de mortalidad en el mundo?", ["América.", "África.", "Asia.", "Europa."], 1],
+  /* (98)  */ ["¿Qué países del mundo tienen mayor tasa de migración?", ["México, Bolivia, Venezuela.", "Nigeria, Congo, Tanzania.", "Qatar, Emiratos Árabes, Kuwait.", "China, México, Venezuela."], 2],
+  /* (99)  */ ["¿Qué otros nombres reciben los recursos naturales, renovables y no renovables?", ["Productos de primer nivel.", "Materia prima.", "Productos de calidad.", "Materia económica."], 1],
+  /* (100) */ ["Recursos naturales que se pueden regenerar o reponer con el tiempo:", ["Recursos abióticos, recursos bióticos, recursos hídricos.", "Recursos minerales no metálicos, recursos energéticos fósiles.", "Recursos abióticos, recursos bióticos, recursos energéticos fósiles.", "Recursos bióticos, recursos hídricos, recursos energéticos fósiles."], 0],
+  /* (101) */ ["Recursos naturales que no pueden regenerar o reponer con el tiempo:", ["Recursos abióticos, recursos bióticos, recursos hídricos.", "Recursos minerales no metálicos, recursos energéticos fósiles.", "Recursos abióticos, recursos bióticos, recursos energéticos fósiles.", "Recursos bióticos, recursos hídricos, recursos energéticos fósiles."], 1],
+  /* (102) */ ["¿Qué son los recursos agrícolas?", ["Son aquellos proporcionados por la crianza de aves.", "Actividad económica mediante el manejo y explotación de animales domesticables.", "Son aquellos proporcionados por el cultivo de la tierra.", "Ninguna de las anteriores."], 2],
+  /* (103) */ ["¿Qué país del mundo es el mayor productor de hidrocarburos?", ["Bolivia.", "Venezuela.", "Estados Unidos.", "Arabia Saudita."], 3],
+  /* (104) */ ["¿Qué son los hidrocarburos?", ["Son combustibles sólidos formados básicamente por hidrógeno y carbono.", "Son combustibles fósiles formados básicamente por hidrógeno y carbono.", "Son combustibles fósiles formados básicamente por hierro y carbono.", "Son combustibles fósiles formados básicamente por hidrógeno y cromo."], 1],
+  /* (105) */ ["De acuerdo al Consejo Mundial del Oro, los países con más exportación de oro son:", ["China y Australia.", "Bolivia y Brasil.", "Egipto y Suiza.", "Ninguno de los anteriores."], 0],
+  /* (106) */ ["¿Cuáles son los elementos constitutivos del estado?", ["Territorio, población y poder público.", "Poder ejecutivo, Poder Legislativo, Poder Judicial.", "Población, poder legislativo, poder judicial.", "Ninguna de las anteriores."], 0],
+  /* (107) */ ["¿Qué atribuciones básicas tiene el poder ejecutivo?", ["Administrar la justicia.", "Hacer cumplir las leyes y gobernar.", "Elaborar leyes, cumplir y hacer cumplir el mandato constitucional.", "Ninguna de las anteriores."], 1],
+  /* (108) */ ["¿Qué atribuciones básicas tiene el poder Judicial?", ["Administrar la justicia.", "Hacer cumplir las leyes y gobernar.", "Elaborar leyes, cumplir y hacer cumplir el mandato constitucional.", "Ninguna de las anteriores."], 0],
+  /* (109) */ ["¿Cuáles son las cuencas de Bolivia?", ["Cuenca del Amazónica, Cuenca de La Plata.", "Cuenca de los Andes, Cuenca del Amazónica, Cuenca de La Plata.", "Cuenca del Amazónica, Cuenca de La Plata, cuenca Altiplánica.", "Ninguna de las anteriores."], 2],
+  /* (110) */ ["¿Cuál es la superficie territorial de Bolivia?", ["1.098.581 kilómetros cuadrados.", "1.198.581 kilómetros cuadrados.", "1.098.381 kilómetros cuadrados.", "1.088.581 kilómetros cuadrados."], 0],
+  /* (111) */ ["Uno de los sistemas montañosos avanza paralelo al Océano Pacífico, con una longitud de 8.900 kilómetros y una altitud máxima de 6.960 metros.", ["Cordillera Oriental.", "Cordillera de los Andes.", "Cordillera Central.", "Cordillera del Aconcagua."], 1],
+  /* (112) */ ["¿Cuáles son las zonas agrícolas de Bolivia?", ["Altiplano, valle y llano.", "Altiplano, trópico y llano.", "Altiplano, valle y bosque.", "Ninguna de las anteriores."], 0],
+  /* (113) */ ["¿Cuáles son las zonas con mayor ganadería de Bolivia?", ["Santa Cruz, Beni y Tarija.", "Santa Cruz, Beni y Cochabamba.", "Santa Cruz, Beni y Pando.", "Santa Cruz, Beni y La Paz."], 2],
+  /* (114) */ ["¿Dónde se encuentra Misicuni?", ["Al sur de la cordillera del Tunari, parte de la cordillera de los Andes.", "Al sur de la cordillera del Central, parte de la cordillera real.", "Al norte de la cordillera del Tunari, parte de la cordillera real.", "Al sur de la cordillera del Tunari, parte de la cordillera real."], 3],
+  /* (115) */ ["¿Mencione las principales poblaciones limítrofes de Bolivia y el Brasil?", ["Cobija, Guayaramerín, San Matías, Puerto Suárez.", "Cobija, Guaqui, San Matías, Puerto Suárez.", "Cobija, Guayaramerín, Desaguadero, Puerto Suárez.", "Cobija, Guayaramerín, San Matías, Yacuiba."], 0],
+  /* (116) */ ["¿Cuáles son los hitos establecidos en los límites actuales con el Paraguay?", ["Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Choqueyapu, BOLBRAPA.", "Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Otuquis, BOLBRAPA.", "Esmeralda, estrella, Villazón, 27 de noviembre, cap. Ustariz, palmar de las islas, Cnl. Sánchez, Chovoreca, río Otuquis, BOLPEBRI.", "Ninguna de las anteriores."], 1],
+  /* (117) */ ["¿Por qué cordillera está comprendida la orografía de Bolivia?", ["La cordillera de los Alpes, la cordillera occidental, cordillera real y cordillera central.", "La cordillera de los Andes, la cordillera de los Himalaya, cordillera real y cordillera central.", "La cordillera de los Andes, la cordillera occidental, cordillera real y cordillera central.", "La cordillera de los Andes, la cordillera occidental, cordillera real y cordillera de los Urales."], 2],
+  /* (118) */ ["¿En cuántas secciones se divide la cordillera occidental?", ["En 3 sección norte, sección central, sección sur.", "En 2 sección norte, sección sur.", "En 3 sección este, sección central, sección oeste.", "En 2 sección este, sección oeste."], 0],
+  /* (119) */ ["¿En cuántas secciones se divide la cordillera real u oriental y cuáles son?", ["En cuatro: cordillera de La Paz, frailes, chichas y Lípez.", "En cinco: cordillera de La Paz, tres cruces, frailes, chichas y Lípez.", "En dos: cordillera de La Paz y Lípez.", "En tres: tres cruces, frailes, chichas y Lípez."], 1],
+  /* (120) */ ["¿Cuáles son los países que limitan con Bolivia?", ["Perú, Brasil, Chile, Uruguay, Argentina.", "Perú, Brasil, Ecuador, Paraguay, Argentina.", "Brasil, Chile, Paraguay, Argentina.", "Perú, Brasil, Chile, Paraguay, Argentina."], 3],
+  /* (121) */ ["¿Cuál es el departamento de Bolivia que tiene más provincias?", ["La Paz.", "Cochabamba.", "Santa Cruz.", "Beni."], 0],
+  /* (122) */ ["¿Cuáles son los ríos principales de la cuenca de La Plata?", ["Madre de Dios y Paraguay.", "Pilcomayo y Beni.", "Pilcomayo y Guadalquivir.", "Pilcomayo y Paraguay."], 3],
+  /* (123) */ ["¿Cuál es el nevado más alto de Bolivia?", ["Sajama.", "Illimani.", "Huayna Potosí.", "Ninguno de los anteriores."], 0],
+  /* (124) */ ["¿Cuáles son los ríos principales de la cuenca del Amazonas?", ["Pilcomayo, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Madera.", "Mamoré, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Madera.", "Mamoré, Madre de Dios, Choqueyapu, Orthon, Yata, Iténez o Guaporé, Beni, Madera.", "Mamoré, Madre de Dios, Abuná, Orthon, Yata, Iténez o Guaporé, Beni, Rocha."], 1],
+  /* (125) */ ["¿A qué altitud sobre el nivel del mar se encuentra el lago Titicaca?", ["3.612 m.s.n.m.", "3.712 m.s.n.m.", "3.812 m.s.n.m.", "3.912 m.s.n.m."], 2],
+  /* (126) */ ["¿Cuál es la sede de gobierno de Bolivia?", ["Sucre.", "Santa Cruz.", "Chuquisaca.", "Ninguno de los anteriores."], 3],
+  /* (127) */ ["¿Cómo se organiza Bolivia territorialmente?", ["Departamentos, provincias, municipios y territorios indígena originario campesinos.", "Departamentos, provincias, gobernaciones y territorios indígena originario campesinos.", "Departamentos, estados, municipios y territorios indígena originario campesinos.", "Ninguno de los anteriores."], 0],
+  /* (128) */ ["¿Dónde nace el Río Amaru Mayu y cómo es conocido en Bolivia?", ["En Brasil, Madre de Dios.", "En Perú, Madre de Dios.", "En Argentina, Parapetí.", "En el Perú, Mamoré."], 1],
+  /* (129) */ ["¿Qué departamentos abarcan la amazonia boliviana?", ["Santa Cruz, Beni, Pando y Cochabamba.", "Santa Cruz, Beni, Pando y Oruro.", "Santa Cruz, Beni, Pando y La Paz.", "Santa Cruz, Beni, Pando y Tarija."], 2],
+  /* (130) */ ["¿Cómo se denomina el punto tripartito de Bolivia, Perú y Brasil?", ["BOLPEBRA.", "BOLPABRA.", "Cobija.", "Desaguadero."], 0],
+  /* (131) */ ["¿Cómo se llama la reserva más grande de hierro de Bolivia y en qué provincia y departamento se encuentran?", ["MUTUN, provincia Germán Busch, departamento de Beni.", "MUTUN, provincia Cordillera, departamento de Santa Cruz.", "MUTUN, provincia Germán Busch, departamento de Santa Cruz.", "MUTUN, provincia Germán Busch, departamento de Chuquisaca."], 2],
+  /* (132) */ ["¿Dónde se encuentran las ruinas de Tiwanaku?", ["En el departamento de La Paz, Bolivia, a 15 km al sudeste del lago Poopó.", "En el departamento de Oruro, Bolivia, a 15 km al sudeste del lago Titicaca.", "En el departamento de Potosí, Bolivia, a 15 km al sudeste del lago Poopó.", "En el departamento de La Paz, Bolivia, a 15 km al sudeste del lago Titicaca."], 3],
+  /* (133) */ ["¿Cuál es la mina más grande de Bolivia?", ["Mina San Cristóbal.", "Mina Caracoles.", "Mina Viriloco.", "Mina San Benito."], 0],
+  /* (134) */ ["¿En qué meridianos se encuentra Bolivia?", ["Meridianos 51° 26' y 69° 38' de longitud occidental del meridiano de Greenwich.", "Meridianos 57° 26' y 69° 38' de longitud occidental del meridiano de Greenwich.", "Meridianos 59° 26' y 69° 38' de longitud occidental del meridiano de Greenwich.", "Meridianos 52° 26' y 69° 38' de longitud occidental del meridiano de Greenwich."], 1],
+  /* (135) */ ["¿En qué paralelos se encuentra Bolivia?", ["Paralelos 5° 38' y 22° 53' de latitud sur.", "Paralelos 3° 38' y 22° 53' de latitud sur.", "Paralelos 9° 38' y 22° 53' de latitud sur.", "Paralelos 4° 38' y 22° 53' de latitud sur."], 2],
+  /* (136) */ ["¿Dónde está ubicado el lago Poopó?", ["Departamento de Oruro.", "Departamento de La Paz.", "Departamento de Potosí.", "Departamento de Cochabamba."], 0],
+  /* (137) */ ["¿Cuáles son los ríos que alimentan el caudal del Lago Titicaca?", ["Río Desaguadero, Choqueyapu, Ichoa y Luribay.", "Río Desaguadero, Zongo, Ichoa y Luribay.", "Río Desaguadero, Zongo, Mamoré y Luribay.", "Río Parapetí, Zongo, Ichoa y Luribay."], 1],
+  /* (138) */ ["¿Cuál es el río más largo de Bolivia?", ["Mamoré.", "Pilcomayo.", "Parapetí.", "Madre de Dios."], 0],
+  /* (139) */ ["¿Cuáles son los principales salares de Bolivia?", ["Mutún y Uyuni.", "Coipasa y Huanuni.", "Coipasa y Uyuni.", "Ninguno de los anteriores."], 2],
+  /* (140) */ ["¿En qué provincia se encuentran los manantiales del Silala?", ["Provincia Sud Lípez.", "Provincia Nor Lípez.", "Provincia Nor Chichas.", "Provincia Sur Chichas."], 0],
+  /* (141) */ ["¿Dónde se encuentra el parque nacional Eduardo Abaroa?", ["Departamento de Tarija.", "Departamento de Potosí.", "Departamento de Cochabamba.", "Departamento de Oruro."], 1],
+  /* (142) */ ["¿Dónde se encuentra el parque nacional Amboró?", ["Departamento de Tarija.", "Departamento de Potosí.", "Departamento de Cochabamba.", "Departamento de Santa Cruz."], 3],
+  /* (143) */ ["¿Dónde se encuentra el parque nacional Tunari?", ["Departamento de Tarija.", "Departamento de Potosí.", "Departamento de Cochabamba.", "Departamento de Santa Cruz."], 2],
+  /* (144) */ ["¿Qué institución del estado está encargada de la elaboración de la cartografía nacional?", ["Instituto Geográfico Militar.", "Gobierno Autónomo de La Paz.", "Instituto de Investigación Forense.", "Policía Nacional."], 0],
+  /* (145) */ ["¿En qué lugar habitan los Yuracares?", ["En las riberas de los afluentes del río Mamoré.", "En el chaco boreal, río Pilcomayo.", "Bosque tropical en los llanos de Moxos.", "Llanos chiquitanos."], 0],
+  /* (146) */ ["¿En qué lugar habitan los Weenhayek?", ["En las riberas de los afluentes del río Mamoré.", "En el chaco boreal, río Pilcomayo.", "Bosque tropical en los llanos de Moxos.", "Llanos chiquitanos."], 1],
+  /* (147) */ ["¿Cuál es la superficie del salar de Uyuni?", ["11.582 km².", "12.582 km².", "10.582 km².", "8.582 km²."], 2],
+  /* (148) */ ["¿A qué altitud se encuentra el salar de Uyuni?", ["5.653 m.s.n.m.", "4.653 m.s.n.m.", "2.653 m.s.n.m.", "3.653 m.s.n.m."], 3],
+  /* (149) */ ["¿Cuál es la capital de Bolivia?", ["La Paz.", "Chuquisaca.", "Sucre.", "Cochabamba."], 2],
+  /* (150) */ ["¿Cuál es la superficie de Bolivia al nacer a la vida independiente?", ["2.163.769 km².", "2.563.769 km².", "2.463.769 km².", "2.363.769 km²."], 3],
+  /* (151) */ ["¿Qué población indígena habita en las cercanías de la ciudad de Chuquisaca?", ["Tarabuco.", "Aymara.", "Quechua.", "Chiquitano."], 0],
+  /* (152) */ ["¿Qué superficie tiene el departamento de Chuquisaca?", ["52.524 km².", "51.524 km².", "53.524 km².", "54.524 km²."], 0],
+  /* (153) */ ["¿A qué ciudad se denomina la ciudad de los cuatro nombres?", ["La Paz.", "Potosí.", "Oruro.", "Sucre."], 3],
+  /* (154) */ ["¿En cuántas provincias se divide el departamento de Chuquisaca?", ["10 provincias.", "12 provincias.", "14 provincias.", "9 provincias."], 0],
+  /* (155) */ ["¿En qué departamento se encuentran las provincias de Oropeza, Zudáñez y Nor Cinti?", ["Departamento de Potosí.", "Departamento de Chuquisaca.", "Departamento de Cochabamba.", "Departamento de Oruro."], 1],
+  /* (156) */ ["La principal producción económica del departamento de Chuquisaca está relacionada con:", ["Ganadería.", "Agricultura.", "Minería.", "Producción Piscícola."], 0],
+  /* (157) */ ["¿Cuál es la montaña más alta del departamento de La Paz?", ["Illimani.", "Huayna Potosí.", "Illampu.", "Mururata."], 0],
+  /* (158) */ ["¿En qué cuenca se encuentra y cuál es la longitud del río Desaguadero?", ["Cuenca del Pilaya 360 km.", "Cuenca de La Plata 360 km.", "Cuenca del Amazonas 360 km.", "Cuenca Central o Lacustre 360 km."], 3],
+  /* (159) */ ["¿En cuántas provincias se divide el departamento de La Paz?", ["18 provincias.", "20 provincias.", "21 provincias.", "15 provincias."], 1],
+  /* (160) */ ["¿Cuál es la capital de la provincia Ingavi del departamento de La Paz?", ["Laja.", "El Alto.", "Viacha.", "Caranavi."], 2],
+  /* (161) */ ["¿Dónde se encuentra el nevado Huayna Potosí?", ["Ubicado en la cordillera real u oriental en el departamento de La Paz.", "Ubicado en la cordillera occidental en el departamento de Oruro.", "Ubicado en la cordillera real u oriental en el departamento de Potosí.", "Ninguno de los anteriores."], 0],
+  /* (162) */ ["¿En qué departamento se encuentran las provincias Franz Tamayo, Murillo y Aroma?", ["Departamento de Cochabamba.", "Departamento de La Paz.", "Departamento de Oruro.", "Departamento de Potosí."], 1],
+  /* (163) */ ["¿Cuál es la extensión del departamento de La Paz?", ["333.985 kilómetros cuadrados.", "33.985 kilómetros cuadrados.", "133.985 kilómetros cuadrados.", "233.985 kilómetros cuadrados."], 2],
+  /* (164) */ ["¿Cuáles son los principales ríos del departamento de La Paz?", ["Río Desaguadero, río Mamoré, río Beni.", "Río Desaguadero, río Mapiri, río Madera.", "Río Desaguadero, río Mapiri, río Rocha.", "Río Desaguadero, río Mapiri, río Beni."], 3],
+  /* (165) */ ["¿Cuál es la superficie del departamento de Tarija?", ["37.623 kilómetros cuadrados.", "38.623 kilómetros cuadrados.", "35.623 kilómetros cuadrados.", "31.623 kilómetros cuadrados."], 0],
+  /* (166) */ ["¿Cuántas provincias tiene el departamento de Tarija?", ["7 provincias.", "6 provincias.", "8 provincias.", "5 provincias."], 1],
+  /* (167) */ ["¿Cuáles son los ríos más importantes del departamento de Tarija?", ["Río Parapetí, río Guadalquivir, río Bermejo.", "Río Desaguadero, río Guadalquivir, río Bermejo.", "Río Pilcomayo, río Guadalquivir, río Bermejo.", "Río Mamoré, río Guadalquivir, río Bermejo."], 2],
+  /* (168) */ ["¿En qué departamento se encuentran las provincias Gran Chaco y Aniceto Arce?", ["La Paz.", "Cochabamba.", "Chuquisaca.", "Tarija."], 3],
+  /* (169) */ ["¿Dónde se encuentra la ciudad de Villamontes?", ["La Paz.", "Cochabamba.", "Chuquisaca.", "Tarija."], 3],
+  /* (170) */ ["¿Cuáles son los cerros más importantes del departamento de Tarija?", ["Cerro Aguarague, cerro Sicasica, cerro Pizarro, cerro Callejas, cerro Colorado.", "Cerro Aguarague, cerro Sajama, cerro Pizarro, cerro Callejas, cerro Colorado.", "Cerro Aguarague, cerro Sicasica, cerro Illampu, cerro Callejas, cerro Colorado.", "Cerro Aguarague, cerro Sicasica, cerro Pizarro, cerro Callejas, cerro Letanías."], 0],
+  /* (171) */ ["¿En qué departamento se encuentra el salar de Coipasa?", ["La Paz.", "Oruro.", "Potosí.", "Tarija."], 1],
+  /* (172) */ ["¿Cuántas provincias tiene el departamento de Oruro?", ["8 provincias.", "9 provincias.", "14 provincias.", "16 provincias."], 3],
+  /* (173) */ ["¿Cuál es la superficie del departamento de Oruro?", ["53.523 kilómetros cuadrados.", "53.623 kilómetros cuadrados.", "53.723 kilómetros cuadrados.", "53.823 kilómetros cuadrados."], 0],
+  /* (174) */ ["¿En qué departamento se encuentra la provincia Sabaya, Poopó, Mejillones?", ["La Paz.", "Potosí.", "Oruro.", "Cochabamba."], 2],
+  /* (175) */ ["El lago Poopó es el tercer lago más grande de Bolivia, ¿en qué departamento está ubicado?", ["Cochabamba.", "Tarija.", "Potosí.", "Oruro."], 3],
+  /* (176) */ ["Oruro es un departamento de Bolivia y dentro de sus principales fuentes de ingreso está:", ["Minería, Ganadería, industria petrolera, turismo, comercio.", "Minería, Agricultura, turismo, comercio.", "Minería, industria forestal, Agricultura, turismo, comercio.", "Minería, Ganadería, Agricultura, turismo, comercio."], 3],
+  /* (177) */ ["Tiene una superficie 370.621 kilómetros cuadrados, ocupa el 34% del territorio boliviano.", ["Beni.", "La Paz.", "Santa Cruz.", "Tarija."], 2],
+  /* (178) */ ["¿Cuántas provincias tiene el departamento de Santa Cruz?", ["15 provincias.", "12 provincias.", "16 provincias.", "18 provincias."], 0],
+  /* (179) */ ["¿Cuáles son los principales ríos del departamento de Santa Cruz?", ["Río Chapare, río Piraí, río Ichilo, río Parapetí.", "Río Grande, río Piraí, río Ichilo, río Parapetí.", "Río Grande, río Piraí, río Ichilo, río Pilcomayo.", "Río Grande, río Rocha, río Ichilo, río Parapetí."], 1],
+  /* (180) */ ["¿En qué departamento se encuentra la provincia Cordillera, Chiquitos, Velasco?", ["Beni.", "La Paz.", "Santa Cruz.", "Tarija."], 2],
+  /* (181) */ ["¿En qué departamento se encuentra el parque nacional Noel Kempff Mercado?", ["Beni.", "La Paz.", "Santa Cruz.", "Tarija."], 2],
+  /* (182) */ ["¿Cuál es la capital del departamento de Santa Cruz?", ["Santa Cruz de la Sierra.", "Montero.", "Santa Cruz.", "Warnes."], 0],
+  /* (183) */ ["¿Cuántas provincias tiene el departamento de Cochabamba?", ["15 provincias.", "12 provincias.", "16 provincias.", "18 provincias."], 2],
+  /* (184) */ ["¿Cuáles son los principales ríos del departamento de Cochabamba?", ["Río Rocha, río Mizque, río Arque.", "Río Rocha, río Mamoré, río Arque.", "Río Cochabamba, río Mizque, río Arque.", "Río Rocha, río Mizque, río Desaguadero."], 0],
+  /* (185) */ ["¿En qué departamento se encuentran las provincias Arani, Mizque y Carrasco?", ["Cochabamba.", "Tarija.", "Potosí.", "Oruro."], 0],
+  /* (186) */ ["¿Qué superficie tiene el departamento de Cochabamba?", ["55.431 km².", "55.631 km².", "55.331 km².", "55.731 km²."], 1],
+  /* (187) */ ["¿Cuáles son los cerros más importantes del departamento de Cochabamba?", ["Illampu, San Pedro, Machacamarca, Ushpa Ushpa.", "Tunari, San Pedro, Sajama, Ushpa Ushpa.", "Tunari, San Pedro, Machacamarca, Ushpa Ushpa.", "Tunari, San Pedro, Machacamarca, Muela del Diablo."], 2],
+  /* (188) */ ["¿Cuál es la capital del departamento de Pando?", ["Cobija.", "Trinidad.", "Nicolás Suárez.", "Madre de Dios."], 0],
+  /* (189) */ ["¿En qué departamento se encuentran las provincias Madre de Dios y Federico Román?", ["Beni.", "La Paz.", "Santa Cruz.", "Pando."], 3],
+  /* (190) */ ["¿Cuántas provincias tiene el departamento de Pando?", ["4 provincias.", "3 provincias.", "5 provincias.", "6 provincias."], 2],
+  /* (191) */ ["¿Qué superficie tiene el departamento de Pando?", ["63.527 kilómetros cuadrados.", "63.427 kilómetros cuadrados.", "63.727 kilómetros cuadrados.", "63.827 kilómetros cuadrados."], 3],
+  /* (192) */ ["¿Cuáles son los ríos más importantes del departamento de Pando?", ["Madre de Dios, Tahuamanu, Manuripi, Abuná.", "Mapiri, Tahuamanu, Manuripi, Abuná.", "Madre de Dios, Tahuamanu, Mamoré, Abuná.", "Madre de Dios, Rocha, Manuripi, Abuná."], 0],
+  /* (193) */ ["¿Cuántas provincias tiene el departamento de Potosí?", ["16 provincias.", "12 provincias.", "20 provincias.", "15 provincias."], 0],
+  /* (194) */ ["¿Qué superficie tiene el departamento de Potosí?", ["128.218 kilómetros cuadrados.", "118.218 kilómetros cuadrados.", "138.218 kilómetros cuadrados.", "148.218 kilómetros cuadrados."], 1],
+  /* (195) */ ["¿En qué departamento se encuentran las provincias Tomás Frías y Chayanta?", ["Cochabamba.", "Tarija.", "Potosí.", "Oruro."], 2],
+  /* (196) */ ["¿En qué departamento de Bolivia se encuentra la mina San Cristóbal?", ["Cochabamba.", "Tarija.", "Potosí.", "Oruro."], 2],
+  /* (197) */ ["¿Cuántas provincias tiene el departamento de Beni?", ["10 provincias.", "7 provincias.", "5 provincias.", "8 provincias."], 3],
+  /* (198) */ ["¿Cuáles son los ríos más importantes del departamento de Beni?", ["Mamoré, Beni, Iténez, Yacuma.", "Mapiri, Beni, Iténez, Yacuma.", "Mamoré, Beni, Iténez, Rocha.", "Mamoré, Beni, Pilcomayo, Yacuma."], 0],
+  /* (199) */ ["¿En qué departamento se encuentran las provincias José Ballivián y Moxos?", ["Cochabamba.", "Beni.", "Potosí.", "Oruro."], 1],
+  /* (200) */ ["¿Qué superficie tiene el departamento de Beni?", ["214.564 kilómetros cuadrados.", "216.564 kilómetros cuadrados.", "211.564 kilómetros cuadrados.", "213.564 kilómetros cuadrados."], 3]
 ];
 
-let timeLeft = 20 * 60;
-let timerInterval;
-let currentQuestions = [];
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
 
+/* Claves de localStorage */
+var KEY_HISTORY = 'geoExam_v3_history';
+var KEY_POOL = 'geoExam_v3_pool';
+var KEY_SEEN = 'geoExam_v3_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
 function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
   }
   return a;
 }
 
+function makeRange(n) {
+  var r = [];
+  for (var i = 0; i < n; i++) r.push(i);
+  return r;
+}
+
+function pad2(n) {
+  return n < 10 ? '0' + n : '' + n;
+}
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) {
+      if (seenEver[k]) seenArr.push(parseInt(k, 10));
+    }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) {
+    console.warn('saveState error:', e);
+  }
+}
+
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) {
+      examHistory = JSON.parse(h);
+      if (!Array.isArray(examHistory)) examHistory = [];
+    }
+    attemptNumber = examHistory.length;
+
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) {
+      pool = JSON.parse(p);
+      if (!Array.isArray(pool)) pool = [];
+    } else {
+      pool = shuffle(makeRange(questions.length));
+    }
+
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+      }
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = [];
+    seenEver = {};
+    attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL (200 preguntas en ~7 intentos)
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) {
+        if (!inExam[i]) remaining.push(i);
+      }
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
 function updateTimer() {
-  const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-  const s = (timeLeft % 60).toString().padStart(2, '0');
-  document.getElementById('timer').textContent = `Tiempo restante: ${m}:${s}`;
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
 }
 
 function startTimer() {
-  clearInterval(timerInterval);
-  timeLeft = 20 * 60;
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
   updateTimer();
-  timerInterval = setInterval(() => {
+  timerInterval = setInterval(function() {
     timeLeft--;
     updateTimer();
     if (timeLeft <= 0) {
@@ -269,71 +399,265 @@ function startTimer() {
   }, 1000);
 }
 
+/* ============================================================
+   INFO EN PANTALLA
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) {
+    if (seenEver[k]) seen++;
+  }
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER DEL EXAMEN (con fix de opciones "Todas/Ninguna")
+   ============================================================ */
 function renderExam() {
-  const examDiv = document.getElementById('exam');
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = '';
-  examDiv.innerHTML = '';
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
   document.getElementById('submitBtn').disabled = false;
 
-  currentQuestions = shuffle(questions).slice(0, 20).map(q => {
-    const correctText = q[1][q[2]];
-    const shuffledOptions = shuffle(q[1]);
-    const correctIndex = shuffledOptions.indexOf(correctText);
-    return [q[0], shuffledOptions, correctIndex];
-  });
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
 
-  currentQuestions.forEach((q, idx) => {
-    const div = document.createElement('div');
-    div.className = 'question';
-    div.innerHTML = `<p>${idx + 1}. ${q[0]}</p>`;
-    q[1].forEach((opt, optIdx) => {
-      const label = document.createElement('label');
-      const input = document.createElement('input');
-      input.type = 'radio';
-      input.name = `q${idx}`;
-      input.value = optIdx;
-      label.appendChild(input);
-      label.appendChild(document.createTextNode(' ' + opt));
-      div.appendChild(label);
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+
+    /* Separar opciones normales de "Todas/Ninguna de las anteriores" */
+    var normales = [];
+    var finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]);
+      else normales.push(q[1][o]);
+    }
+
+    /* Mezclar solo las normales; las "anteriores" siempre al final */
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      sourceId: picked[j] + 1,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
     });
-    examDiv.appendChild(div);
-  });
+  }
 
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = '  (#' + qd.sourceId + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
   startTimer();
 }
 
-function submitExam(auto = false) {
-  clearInterval(timerInterval);
-  let score = 0;
-  const resultDiv = document.getElementById('result');
-  let html = '';
-  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
 
-  currentQuestions.forEach((q, idx) => {
-    const selected = document.querySelector(`input[name="q${idx}"]:checked`);
-    const selectedVal = selected ? parseInt(selected.value) : -1;
-    const isCorrect = selectedVal === q[2];
-    if (isCorrect) score += 5;
+  var correct = 0;
+  var html = '';
+  if (auto) {
+    html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+  }
 
-    html += `<p><strong>${idx + 1}. ${q[0]}</strong><br>`;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">(#' + q.sourceId + ')</span><br>';
     if (isCorrect) {
-      html += `<span class="correct">Correcto: ${q[1][q[2]]}</span></p>`;
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
     } else {
-      const selectedText = selectedVal >= 0 ? q[1][selectedVal] : 'Sin respuesta';
-      html += `<span class="incorrect">Tu respuesta: ${selectedText}</span><br>`;
-      html += `<span class="correct">Correcto: ${q[1][q[2]]}</span></p>`;
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
     }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct,
+    total: total,
+    pct: pct,
+    auto: !!auto
   });
 
-  html = `<h2>Calificación: ${score}/100</h2>` + html;
-  resultDiv.innerHTML = html;
+  saveState();
+  renderInfo();
+  renderHistory();
   document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
 }
 
-document.getElementById('submitBtn').addEventListener('click', () => submitExam(false));
-document.getElementById('resetBtn').addEventListener('click', renderExam);
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
 
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td>' +
+            '<td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = [];
+  attemptNumber = 0;
+  seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO (avisa si alguna pregunta tiene error)
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    if (!Array.isArray(q) || q.length !== 3) {
+      errores.push('Pregunta #' + (i + 1) + ': formato inválido');
+      continue;
+    }
+    if (!Array.isArray(q[1]) || q[1].length < 2) {
+      errores.push('Pregunta #' + (i + 1) + ': sin opciones');
+      continue;
+    }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push('Pregunta #' + (i + 1) + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR CON RESPUESTAS MARCADAS
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) {
+      hayRespuestas = true; break;
+    }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) {
+      return;
+    }
+  }
+  renderExam();
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
 renderExam();
 </script>
 </body>
