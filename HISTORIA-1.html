@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Historia - Versión Final</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Historia</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;         // Duración del examen (minutos)
+var QUESTIONS_PER_EXAM = 30;   // Preguntas por intento
+
+/* ============================================================
+   BANCO DE PREGUNTAS (111)
+   Formato: [texto, [opciónA, opciónB, opciónC, opciónD], índice_correcto]
+   índice: 0=A, 1=B, 2=C, 3=D
+   ============================================================ */
+var questions = [
+  /* (2)   */ ["¿Cómo se llamaba Nuestra nación en los tiempos incaicos?", ["Collasuyo.", "Tiahuanacu.", "Antisuyo.", "Tintasuyo."], 0],
+  /* (3)   */ ["¿Quién fue el fundador del imperio incaico?", ["Manco Kápac.", "Tupac Katari.", "Tomas Katari.", "Sinchi Roca."], 0],
+  /* (4)   */ ["¿Cómo se llamaba el imperio incaico?", ["Sinchi Roca.", "Tahuantinsuyo.", "Montoneros.", "Sinchirunas."], 1],
+  /* (11)  */ ["¿Durante la época de la Colonia por algo más de 200 años el territorio de la actual Bolivia se constituyó en?", ["Real Audiencia de la Plata.", "Real Audiencia de Charcas.", "Real Audiencia de Lima.", "Real Audiencia de Sucre."], 1],
+  /* (12)  */ ["¿Una de las instituciones más importantes del gobierno colonial en América fue?", ["La Universidad.", "Las Reales Audiencias.", "La Mita.", "El ejército Realista."], 1],
+  /* (13)  */ ["¿Cuántas Intendencias tenía bajo su control la Real Audiencia de Charcas?", ["Tenía cuatro; de Potosí, de Beni, de la Plata y de Cochabamba.", "Tenía cuatro; de Potosí, de La Paz, de la Plata y de Cochabamba.", "Tenía cuatro; de Potosí, de La Paz, de Charcas y de Cochabamba.", "Tenía tres; de Pando, de la Plata y de Cochabamba."], 1],
+  /* (14)  */ ["¿Quién fue el presidente de la junta nacional tuitiva y comandante del ejército patriota en La Paz?", ["Don Mariano Serrano.", "Dr. Daniel Salamanca.", "Don Pedro Domingo Murillo.", "Don Eustaquio Méndez."], 2],
+  /* (15)  */ ["¿Quién le confirió el grado de Teniente Coronel a Juana Azurduy de Padilla?", ["El gobierno de Brasil le confirió el grado de Teniente Coronel sin derecho al uso del uniforme.", "El gobierno de las Provincias Unidas del Río de la Plata le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme.", "El Ejército de Bolivia le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme.", "El Ejército de Perú le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme."], 1],
+  /* (20)  */ ["¿En qué fecha y año se firmó el tratado de Paucarpata?", ["El 20 de enero de 1839.", "El 17 de noviembre de 1837.", "El 09 de Septiembre de 1932.", "El 26 de Mayo de 1880."], 1],
+  /* (21)  */ ["¿Cómo fue conocido inicialmente el Dpto. de Pando al crearse?", ["Fue conocido con el nombre de \"Villa Busch\".", "Fue conocido con el nombre de \"Territorio Nacional Colonias\".", "Fue conocido con el nombre de \"Trinidad\".", "Fue conocido como Dpto. de Pando."], 1],
+  /* (22)  */ ["¿Cuáles eran las principales republiquitas que combatieron contra los realistas en la guerra de la independencia?", ["Republiqueta de Moxos, Chiquitos, Titicaca.", "Republiqueta de la Laguna, Ayopaya, Larecaja, Chuquisaca.", "Republiqueta de Betanzos, Ayo uma, Cochabamba.", "Republiqueta del Pari, Inquisivi, Toranzos, Carcaje."], 1],
+  /* (23)  */ ["¿Quién se encontraba a la cabeza de la Republiqueta de Larecaja?", ["José de las Muñecas.", "Manuel de las Muñecas.", "Idelfonso de las Muñecas.", "Alonzo de las Muñecas."], 2],
+  /* (24)  */ ["¿Quién registró en un diario los hechos ocurridos en la Republiqueta de Ayopaya?", ["El Tambor Mayor José Manuel Chinchilla.", "El Tambor Mayor José Domingo Gandarillas.", "El Tambor Mayor Eusebio Lira.", "El Tambor Mayor José Santos Vargas."], 3],
+  /* (25)  */ ["¿Entre qué periodos nacen y se consolidan las guerrillas formando Republiquetas?", ["De 1.810 a 1.820.", "De 1.811 a 1.821.", "De 1.812 a 1.822.", "De 1.813 a 1.823."], 1],
+  /* (26)  */ ["¿Cuál fue la única Republiqueta que llegó hasta la Independencia de Bolivia?", ["La Republiqueta de La Laguna.", "La Republiqueta de Larecaja.", "La Republiqueta de Tarija.", "La Republiqueta de Ayopaya."], 3],
+  /* (27)  */ ["Mencione tres batallas que se desarrollaron durante las Campañas de la Confederación Perú – Boliviana.", ["Aroma; Yanacocha y Tumusla.", "Yanacocha; Socabaya y Paucarpata.", "Socabaya, Tacna y Montenegro.", "Boquerón; Tarapacá y Paucarpata."], 1],
+  /* (28)  */ ["¿Quién fue el único líder de la guerrilla (patriota) que tomó parte en la fundación y consolidación de Bolivia?", ["Eustaquio Moto Méndez.", "Gral. José Miguel Lanza.", "Tcnl. Juana Azurduy de Padilla.", "Cnl. José Miguel de Velasco."], 1],
+  /* (29)  */ ["¿La audiencia de Charcas hasta 1776 a qué virreinato pertenecía?", ["Virreinato del Perú.", "Virreinato del Plata.", "Virreinato del Alto Perú.", "Todos los anteriores."], 0],
+  /* (30)  */ ["¿Cuándo y con qué nombre se fundó la ciudad de Cobija?", ["Fue fundada el 9 de febrero de 1906 con el nombre de Bahía.", "Fue fundada el 9 de enero de 1906 con el nombre de Bahía.", "Fue fundada el 9 de Abril de 1906 con el nombre de Bahía.", "Fue fundada el 9 de febrero de 1906 con el nombre de Cobija."], 0],
+  /* (31)  */ ["¿En qué fecha y año la jurisdicción de la audiencia de Charcas volvió a pertenecer al virreinato del Perú?", ["El 03 de agosto de 1810.", "El 10 de Octubre de 1810.", "El 23 de Octubre de 1800.", "El 21 de Agosto de 1810."], 0],
+  /* (32)  */ ["Tomás Katari fue ejecutado por despeñamiento en la región de Chataquilla, cerca de la ciudad de La Plata, en la actualidad Sucre. ¿En qué fecha ocurrió la muerte del líder indígena?", ["El 17 de Julio de 1871.", "El 21 de Agosto de 1800.", "El 1 de Agosto de 1781.", "El 15 de enero de 1781."], 2],
+  /* (33)  */ ["En Santa Cruz también se da un levantamiento contra la corona española, dirigido por los cruceños Suárez y Seoane, junto a los chuguisaqueños Lemoine y Moldes. ¿Qué fecha se da este levantamiento?", ["El 24 de septiembre de 1810.", "El 23 de septiembre de 1819.", "El 24 de septiembre de 1809.", "El 24 de septiembre de 1811."], 2],
+  /* (34)  */ ["Siguiendo la ola de levantamientos luego de 1809, la ciudad de Oruro se subleva el 6 de octubre de 1810. ¿Quiénes dirigieron este levantamiento?", ["Tambor Vargas, el cacique indígena de Zárate y Manuel Victoriano Aguilario de Titicoca.", "Tomás Barrón, el cacique indígena de Toledo y Manuel Victoriano Aguilario de Titicoca.", "Tomás Manchego, el cacique indígena de Huaqui y Manuel Victoriano Cepeda de Achacachi.", "Ninguna de las anteriores."], 0],
+  /* (35)  */ ["Potosí se levanta contra el dominio español. A la cabeza de este movimiento están los patriotas como Salvador Mattos, Alejo y Mariano Nogales, los hermanos Millares, Manuel Molina, Mariano Zubieta, Melchor Daza, Diego Barrenechea y Pedro Costas. ¿En qué fecha se da esta revolución?", ["El 16 de noviembre de 1810.", "El 15 de noviembre de 1810.", "El 10 de noviembre de 1810.", "El 14 de noviembre de 1810."], 1],
+  /* (36)  */ ["¿Qué año y dónde sucede el último levantamiento contra el dominio español dirigido por Esteban Arce?", ["El año 1811 en la ciudad de Cochabamba.", "El año 1812 en la ciudad de Cochabamba.", "El año 1781 en la ciudad de Oruro.", "El año 1810 en la ciudad de Cochabamba."], 0],
+  /* (37)  */ ["¿Cuáles eran los nombres de las Republiquetas que influyeron en la liberación de nuestra patria?", ["Ayopaya, La Laguna, Larecaja, Santa Cruz, Vallegrande, Tarija, Cinti y Chayanta y Porco.", "Achacachi, La Guanchaca, Kalamarca, Pando, Vallegrande, Tarija, Cinti y Chayanta y Porco.", "Ayopaya, La Laguna, Larecaja, Beni, Teoponte, Yacuiba, Cinti y Huanuni y Porco.", "Ninguna de las anteriores."], 0],
+  /* (38)  */ ["¿En 1825 el imperio del Brasil invadió el oriente del país, ocupando la provincia de?", ["Chiquitos.", "Vallegrande.", "Larecaja.", "Muñecas."], 0],
+  /* (39)  */ ["¿Quién comandó la Republiqueta de Chayanta en Porco?", ["Miguel Carrasco y José Ignacio de Palacios.", "Manuel Ascencio Padilla y Juana Azurduy de Padilla.", "Miguel Betanzos y José Ignacio de Zárate.", "Ninguno de los anteriores."], 0],
+  /* (40)  */ ["¿Qué Republiqueta comandaron Eustaquio Méndez, Francisco Pérez de Uriondo y José María Avilés?", ["La Republiqueta de Betanzos.", "La Republiqueta de Tarija.", "La Republiqueta de Chayanta.", "La Republiqueta de Porco."], 1],
+  /* (41)  */ ["Derrotado en la batalla de El Villar en 1816, ¿Cómo fue ejecutado Manuel Ascencio Padilla, comandante de la Republiqueta de La Laguna?", ["Fue colgado.", "Fue decapitado.", "Fue desmembrado.", "Ninguno de los anteriores."], 1],
+  /* (42)  */ ["¿Cuál fue la última batalla librada en el Alto Perú contra la corona española?", ["La última batalla por la Independencia fue la de Ayacucho, el 1 de diciembre de 1824.", "La última batalla por la Independencia fue la de Junín, el 6 de agosto de 1824.", "La última batalla por la Independencia fue la de Tumusla, el 1 de abril de 1825.", "Ninguna de las anteriores."], 2],
+  /* (43)  */ ["¿Cómo se llamaba el último general español que combatió en el Alto Perú?", ["Gral. Pedro Antonio de Olañeta.", "Gral. Francisco Olañeta.", "Cnl. Pedro Ocaña.", "Ninguno de los anteriores."], 0],
+  /* (44)  */ ["¿Cómo se denominaba a la Republiqueta que comandaba el Cura Ildefonso de las Muñecas?", ["Republiqueta de Ayopaya.", "Republiqueta de Arenales.", "Republiqueta de Larecaja.", "Republiqueta de La Laguna."], 2],
+  /* (45)  */ ["¿Quién fue el héroe de la Revolución Libertaria de la ciudad de Potosí?", ["Alonso de Ibáñez.", "Jaime Sudañez.", "Alonzo de Mendoza.", "Esteban Arze."], 1],
+  /* (46)  */ ["¿Cuál fue el periodo de tiempo que duró la Guerra de la Independencia en el Alto Perú?", ["1809 - 1825.", "1810 - 1824.", "1815 – 1826.", "Ninguna de las anteriores."], 0],
+  /* (47)  */ ["¿Con qué nombre fue fundado el departamento de Oruro el 1° de noviembre de 1606 por Manuel Castro Padilla?", ["Villa Pagador.", "Oruro.", "San Felipe de Austria.", "Pagador."], 2],
+  /* (48)  */ ["¿Con qué nombre se funda el Departamento de Tarija?", ["Villa del Gran Chaco.", "Villa de San Bernardo de La Frontera.", "Villa de San Lorenzo.", "Ninguno de los anteriores."], 1],
+  /* (49)  */ ["¿Quién fue el héroe de la Batalla de la Tablada?", ["Eustaquio Méndez.", "Manuel Ascencio Padilla.", "José Miguel Lanza.", "Ildefonso de las Muñecas."], 0],
+  /* (50)  */ ["¿En qué fecha se llevó a cabo la batalla de Aroma?", ["14 de septiembre de 1.810.", "25 de mayo de 1809.", "14 de noviembre de 1810.", "16 de julio de 1809."], 0],
+  /* (51)  */ ["¿Quién fue designado presidente de la Junta Tuitiva al proclamarse la Revolución de La Paz, siguiendo al levantamiento de Chuquisaca?", ["Jaime Zudáñez.", "Juana Azurduy.", "Eustaquio Méndez.", "Pedro Domingo Murillo."], 3],
+  /* (52)  */ ["¿En homenaje a qué Batalla se instituyó que el 6 de agosto de todos los años se recuerde la fundación de la República?", ["En honor a la Batalla de Junín el 6 de agosto de 1.825.", "En honor a la Batalla de Ayacucho el 9 de diciembre de 1.824.", "En honor a la Batalla del Alto de la Alianza el 26 de mayo de 1.880.", "En honor a la Batalla de Tumusla el 1 de abril de 1.825."], 0],
+  /* (53)  */ ["¿Dónde y cuándo nació el libertador Simón Bolívar y en qué fecha murió y dónde?", ["Bolívar nació en Caracas, Venezuela, el 24 de julio de 1.783 y murió en la ciudad de Santa Lucía el 17 de diciembre de 1.830.", "Bolívar nació en Caracas, Venezuela, el 24 de julio de 1.783 y murió en la ciudad de Santa Marta el 17 de diciembre de 1.830.", "Bolívar nació en Carabobo, Venezuela, el 14 de julio de 1.788 y murió en la ciudad de Santa Bárbara el 17 de diciembre de 1.835.", "Bolívar nació en Charcas, Venezuela, el 24 de julio de 1.783 y murió en la ciudad de Santa Marta el 17 de diciembre de 1.830."], 1],
+  /* (54)  */ ["¿Cuál era el nombre completo de Bolívar?", ["Su nombre completo era José Antonio de la Trinidad de Bolívar y Palacios.", "Su nombre completo era Simón José de la Santísima Trinidad de Bolívar y Palacios.", "Su nombre completo era Simón Antonio de Bolívar y Palacios.", "Su nombre completo era Simón José Antonio de la Santísima Trinidad de Bolívar y Palacios."], 3],
+  /* (58)  */ ["¿Por quién fue redactada el acta de la independencia de Bolivia?", ["Por José Mariano Serrano.", "Por Benedetto Vincenti.", "Por José Ignacio de Sanjinés.", "Por Mariano Melgarejo."], 0],
+  /* (59)  */ ["¿En qué batalla Andrés de Santa Cruz y Calahumana obtuvo la victoria que lo proclamó Mariscal?", ["En la batalla de Zepita.", "En la Batalla de Montenegro.", "En la Batalla de Santa Cruz.", "En la Batalla de Junín."], 0],
+  /* (60)  */ ["¿Quién estaba al mando del Ejército Restaurador Perú - Chile, siendo derrotado por el Mariscal Santa Cruz y firmó su rendición mediante el Tratado de Paucarpata?", ["Tcnl. Eleuterio Ramírez Molina.", "Cnl. Emilio Sotomayor Baeza.", "Gral. Manuel Blanco Encalada.", "Gral. Bernardo O'Higgins Riquelme."], 2],
+  /* (61)  */ ["¿Quién fue el primer presidente boliviano nacido en esta Patria?", ["Pedro Blanco.", "José Miguel de Velasco.", "Simón Bolívar.", "José María Pérez de Urdininea."], 3],
+  /* (62)  */ ["¿En qué fecha y año murió Andrés de Santa Cruz y Calahumana?", ["Murió el 25 de septiembre de 1865.", "Murió el 28 de septiembre de 1868.", "Murió el 26 de septiembre de 1864.", "Murió el 24 de septiembre de 1866."], 2],
+  /* (63)  */ ["¿En qué fecha y año se desarrolló la batalla de Ingavi?", ["19 de noviembre de 1847.", "21 de noviembre de 1845.", "23 de noviembre de 1846.", "18 de noviembre de 1841."], 3],
+  /* (64)  */ ["¿Cuándo, dónde y por quién fue fundada la ciudad de La Paz?", ["20 de octubre de 1548, en Laja por Zárate Vilca.", "21 de octubre de 1548, en Laja por Alonso de Mendoza.", "20 de octubre de 1548, en Laja por Pedro Domingo Murillo.", "20 de octubre de 1548, en Laja por Alonso de Mendoza."], 3],
+  /* (65)  */ ["¿En qué fecha se llevó a cabo la Batalla de Junín?", ["El 6 de agosto de 1824.", "El 6 de agosto de 1825.", "El 6 de Septiembre de 1824.", "El 6 de Septiembre de 1825."], 0],
+  /* (66)  */ ["¿Cuándo fue creada la primera bandera nacional?", ["Ley de 17 de agosto de 1825.", "Ley de 17 de Agosto de 1824.", "Ley de 17 de Agosto de 1826.", "Ninguno de los anteriores."], 0],
+  /* (67)  */ ["Los españoles llegan a América en 1492. ¿Qué año llegan los primeros conquistadores al territorio de lo que hoy es Bolivia?", ["En 1532.", "En 1500.", "En 1700.", "En 1250."], 0],
+  /* (68)  */ ["¿Cuál es el nombre de ascendencia española de Túpac Amaru?", ["José Gabriel Condorcanqui.", "José Manuel Condori.", "Zárate Villca.", "Ninguno de los anteriores."], 0],
+  /* (69)  */ ["¿La nueva república de Bolívar, ¿cuándo adoptó oficialmente el nombre de Bolivia?", ["El 03 de octubre 1825.", "El 06 de agosto 1825.", "El 18 de noviembre 1826.", "Ninguno de los anteriores."], 1],
+  /* (70)  */ ["¿En qué gobierno se realizó el primer censo de Bolivia?", ["Tcnl. Germán Busch Becerra.", "Gral. Hugo Banzer Suárez.", "Mcal. Andrés de Santa Cruz y Calahumana.", "Cnl. Pedro Blanco."], 2],
+  /* (71)  */ ["¿Cuándo fue descubierto el cerro rico de Potosí?", ["15 de abril 1547.", "14 de abril 1543.", "01 de abril 1545.", "12 de abril 1513."], 2],
+  /* (72)  */ ["¿Durante qué gobierno se instituyó la tercera y definitiva bandera boliviana?", ["José Ballivián.", "Andrés de Santa Cruz.", "Germán Busch Becerra.", "Manuel Isidoro Belzu."], 3],
+  /* (73)  */ ["¿A quién corresponden las palabras \"Belzu ha muerto ¿quién vive ahora?\"", ["Hilarión Daza.", "Mariano Melgarejo.", "José Manuel Pando.", "Ninguno de los anteriores."], 1],
+  /* (74)  */ ["¿Quiénes son los autores del Himno Nacional?", ["Letra: Benedetto Vincenti y Música: José Ignacio de Sanjinés.", "Letra: Adrián Patiño y Música: Óscar Moscoso.", "Letra: Ricardo José Bustamante y Música: Benedetto Vincenti.", "Letra: José Ignacio de Sanjinés y Música: Benedetto Vincenti."], 3],
+  /* (75)  */ ["Con gran parte de los caudillos como Padilla, Warnes, Camargo y otros fuera de acción, la Asamblea Constituyente de 1825 una vez instalada, quedó bajo la dirección de antiguos realistas, pasados al bando independentista. ¿Cuál de ellos fue el principal conspirador para la creación de la nueva República a su conveniencia?", ["Casimiro Olañeta.", "Pedro Olañeta.", "Carlos Olañeta.", "Pablo Olañeta."], 0],
+  /* (76)  */ ["¿A qué militar peruano venció Ballivián en la batalla de Ingavi?", ["Agustín Gamarra.", "José Miguel de Velasco.", "José Prado.", "Felipe Salaverry."], 0],
+  /* (108) */ ["¿En qué fecha y año se desarrolló la Guerra del Pacífico?", ["Desde el 01 de marzo 1879 hasta el 04 de abril 1884.", "Desde el 13 de marzo 1989 hasta el 16 julio 1999.", "Desde el 14 de junio 1700 hasta el 28 de abril 1884.", "Desde el 01 de marzo 1879 hasta el 02 de febrero de 1884."], 0],
+  /* (109) */ ["¿En qué fecha se desarrolló la invasión chilena al Puerto de Antofagasta?", ["14 de febrero de 1879.", "23 de marzo de 1879.", "14 de febrero de 1880.", "26 de mayo de 1880."], 0],
+  /* (110) */ ["¿Dónde se desarrolló la Batalla de Tacna (Alto de la Alianza)?", ["En la meseta del cerro Inti Orko.", "En Villamontes.", "En Puno.", "En Villazón."], 0],
+  /* (111) */ ["¿Cuándo y cómo termina la Guerra del Pacífico?", ["La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Ancón.", "La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Uti possidetis juris.", "La guerra del Pacífico concluyó el 20 de septiembre de 1883 con la firma del tratado de Ancón.", "La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Alcón."], 0],
+  /* (136) */ ["¿Quién dijo \"Pisar fuerte en el Chaco\" durante la Guerra del Chaco?", ["El Cnl. Manuel Marzana Oroza.", "El presidente Dr. Daniel Salamanca.", "El Gral. Enrique Peñaranda.", "El Tcnl. Germán Busch Becerra."], 1],
+  /* (137) */ ["¿Quién dijo: \"No soy enemigo de los ricos, pero soy más amigo de los pobres\"?", ["El Cnl. Gualberto Villarroel López.", "El Lic. Jaime Paz Zamora.", "El Cnl. Enrique Peñaranda.", "El Lic. Víctor Paz Estenssoro."], 0],
+  /* (138) */ ["¿Cuándo comenzó y terminó la guerra del Chaco?", ["Comenzó el 09 de agosto de 1932 y terminó el 12 de julio de 1936.", "Comenzó el 10 de septiembre de 1932 y terminó el 12 de julio de 1935.", "Comenzó el 08 de octubre de 1932 y terminó el 12 de julio de 1935.", "Comenzó el 09 de septiembre de 1932 y terminó el 12 de julio de 1935."], 3],
+  /* (139) */ ["¿Después de cuántos días de combate el fortín Boquerón cayó nuevamente en manos paraguayas?", ["23 días.", "27 días.", "33 días.", "16 días."], 1],
+  /* (140) */ ["¿A qué general extranjero el Presidente Salamanca nombró Comandante en Jefe del Ejército en campaña durante la Guerra del Chaco?", ["Al general Ruso Iván Dragonov.", "Al general Polaco Russel Laika.", "Al general Alemán Hans Kunt.", "Al general Soviético Yuri Boika."], 2],
+  /* (141) */ ["¿Cuál fue la batalla que a fines de 1932, encabezada por el Teniente Coronel Bernardino Bilbao Rioja, detuvo el avance paraguayo?", ["Batalla de Boquerón.", "Batalla de Cañada Strongest.", "Batalla de Nanawa.", "Batalla de Kilómetro 7."], 1],
+  /* (142) */ ["¿En qué fecha y año se firmó el tratado de Paz, Amistad y Límites entre Bolivia y Paraguay?", ["28 de Julio de 1946.", "29 de Junio de 1938.", "12 de Junio de 1935.", "28 de Julio de 1938."], 1],
+  /* (143) */ ["Durante la Guerra del Chaco, ¿En qué fecha y año se llevó a cabo el primer combate aéreo que es considerado el primero en América?", ["04 de diciembre de 1936, salió victorioso Germán Busch.", "04 de diciembre de 1936, salió victorioso Rafael Pabón.", "04 de diciembre de 1932, salió victorioso Rafael Pabón.", "04 de diciembre de 1936, salió victorioso Emilio Rocholl."], 2],
+  /* (144) */ ["¿Quién se desempeñó como presidente durante gran parte de la guerra del Chaco?", ["Daniel Salamanca.", "Froilán Tejerina.", "Enrique Peñaranda.", "Germán Busch."], 0],
+  /* (145) */ ["¿Quién comandaba el ejército boliviano durante la tercera fase de la Guerra del Chaco?", ["David Toro.", "Bernardino Bilbao.", "Enrique Peñaranda.", "Germán Busch."], 3],
+  /* (146) */ ["¿En julio de 1946 el entonces Tcnl. Gualberto Villarroel fue derrocado y ahorcado en?", ["Un farol de la Plaza Murillo de La Paz.", "Un poste de la Plaza Principal de Potosí.", "Un farol de la Plaza Riosiño de La Paz.", "Un poste de la Plaza Eguino de La Paz."], 0],
+  /* (147) */ ["¿Qué General relevó del mando al General Hans Kunt en la guerra del Chaco?", ["Pedro Blanco.", "Bernardino Bilbao Rioja.", "David Toro.", "Enrique Peñaranda."], 2],
+  /* (148) */ ["El soldado boliviano probó una vez más en la Guerra del Chaco su valor y heroísmo como lo hiciera antes, en la Guerra del Pacífico. Sin pretender ignorar a los soldados anónimos indígenas y obreros. ¿Cuáles fueron algunos referentes de aquellos bolivianos que defendieron Bolivia en la Guerra del Chaco?", ["Rafael Pabón, Germán Jordán, Otto Felipe Braun, Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Germán Jordán, Bernardino Bilbao Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Maximiliano Paredes, Bernardino Bilbao Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Germán Jordán, Tambor Vargas, Marzana, Charata Ustariz, Cabo Juan."], 1],
+  /* (149) */ ["¿Qué fecha aconteció la muerte de Germán Busch Becerra?", ["El 23 de agosto de 1939.", "El 25 de agosto de 1940.", "El 31 de agosto de 1939.", "Ninguno de los anteriores."], 2],
+  /* (150) */ ["¿Quién fue el Comandante Boliviano del Destacamento que defendió el Fortín Boquerón en la primera fase de la guerra del Chaco?", ["Cap. Víctor Ustariz Arce.", "Tcnl. Germán Busch Becerra.", "Tcnl. Francisco Manchego Figueroa.", "Tcnl. Manuel Marzana Oroza."], 0],
+  /* (151) */ ["¿Cómo se denominó a la laguna descubierta por el My. Moscoso al inicio de la guerra del Chaco?", ["Laguna Chuquisaca.", "Laguna Cotagaita.", "Laguna Concepción.", "Laguna Grande."], 2],
+  /* (152) */ ["¿Quién fue uno de los grandes héroes de la guerra del Chaco protagonista de Kilómetro 7 y la Defensa de Villamontes?", ["Enrique Peñaranda.", "Bernardino Bilbao Rioja.", "David Toro.", "Germán Busch Becerra."], 3],
+  /* (173) */ ["¿La construcción y caída del muro de Berlín simbolizaron el final y desaparición de qué guerra?", ["La Segunda Guerra Mundial.", "La Guerra Fría.", "La de Cien Años.", "La Guerra del Golfo Pérsico."], 1],
+  /* (174) */ ["¿En qué fecha y año se consolidó la reunificación de Alemania?", ["03 de Octubre 1990.", "03 de Octubre 1998.", "03 de Octubre 1994.", "Ninguna de las anteriores."], 0],
+  /* (175) */ ["¿Qué nombre le pusieron a la primera bomba atómica?", ["Little Boy.", "Little Bomb.", "Enola Gay.", "Ninguna de las anteriores."], 0],
+  /* (176) */ ["¿En qué fecha y año se inició la construcción del muro de Berlín?", ["12 de agosto de 1961.", "11 de agosto de 1945.", "13 de agosto de 1961.", "14 de Julio de 1959."], 2],
+  /* (177) */ ["¿Concluida la Segunda Guerra Mundial, el mundo se vio dividido en dos bloques, indique cuáles fueron esos dos bloques?", ["El bloque Capitalista y el Bloque Socialista.", "El Bloque Comercial y el Bloque Imperial.", "El bloque Integrista y el Bloque Comunista.", "Ninguno de los anteriores."], 0],
+  /* (178) */ ["¿En 1947 entró en vigencia el Plan Marshall, indique en qué consistía?", ["Reconstrucción de Europa a través del apoyo económico norteamericano.", "Reorganizar el Ejército Alemán.", "Construir el Muro de Berlín.", "Ninguno de los anteriores."], 0],
+  /* (179) */ ["¿En qué fecha y año inició la Primera Guerra Mundial?", ["11 de Noviembre de 1918.", "28 de Julio 1914.", "11 de Junio 1913.", "01 de Agosto de 1918."], 1],
+  /* (180) */ ["¿En qué fecha y año finalizó la Primera Guerra Mundial?", ["11 de Noviembre de 1918.", "28 de Julio 1914.", "11 de Junio 1913.", "01 de Agosto de 1918."], 0],
+  /* (181) */ ["¿Cuál fue la causa que inició la Primera Guerra Mundial?", ["El asesinato de David Lloyd George, heredero del trono del Imperio Austrohúngaro.", "El asesinato del archiduque Francisco Fernando, heredero del trono del Imperio Austrohúngaro.", "El asesinato de Adolfo Hitler, heredero del trono del Imperio Austrohúngaro.", "Ninguno de los anteriores."], 1],
+  /* (182) */ ["¿Cuáles fueron los dos periodos caracterizados por las estrategias empleadas en la Primera Guerra Mundial?", ["Guerra de movimiento y guerra de posiciones.", "Guerra de Guerrillas.", "Operaciones Aerotransportadas.", "Operaciones de desembarco."], 0],
+  /* (183) */ ["¿En qué fecha y año se suscribió el Tratado de Versalles?", ["28 de junio de 1919.", "11 de noviembre de 1918.", "14 de Julio de 1919.", "Ninguno de los anteriores."], 0],
+  /* (184) */ ["¿En qué fecha se desarrolló la Revolución Francesa?", ["07 de mayo 1786.", "05 de mayo 1788.", "05 de mayo 1789.", "Ninguno de los anteriores."], 2],
+  /* (185) */ ["¿En qué fecha se desarrolló la toma de la Bastilla?", ["El 14 de julio de 1789.", "El 16 de julio de 1788.", "El 13 de julio de 1957.", "El 14 de junio de 1789."], 0],
+  /* (186) */ ["¿Cuál fue la trilogía que caracterizó a la Revolución Francesa?", ["Libertad, Igualdad, Fraternidad.", "Morir antes que esclavos vivir.", "Estado, libertad y seguridad.", "Ninguno de los anteriores."], 0],
+  /* (187) */ ["¿Cuál fue una de las causas que dio inicio a la 2da. Guerra Mundial y en qué fecha se suscitó?", ["01 de diciembre de 1940, ataque a la línea Maginot.", "01 de septiembre de 1939, Alemania invadió Polonia.", "07 de diciembre de 1941, ataque a Pearl Harbor.", "Ninguno de los anteriores."], 1],
+  /* (188) */ ["¿Qué acción de guerra por parte de los japoneses provocó el ingreso de EE.UU. en la Segunda Guerra Mundial?", ["El ataque a Pearl Harbor.", "El ataque a Iwo Jima.", "El ataque a Hiroshima.", "Ninguno de los anteriores."], 0],
+  /* (189) */ ["¿En qué fecha y año las tropas aliadas desembarcaron en las playas de Normandía?", ["07 de julio 1944 (Día H).", "06 de junio 1944 (Día D).", "05 de junio 1944 (Día D).", "Ninguno de los anteriores."], 1],
+  /* (190) */ ["¿En qué fecha se rindieron las tropas alemanas que defendían Berlín ante las fuerzas soviéticas?", ["8 de mayo de 1945.", "7 de mayo de 1945.", "9 de mayo de 1945.", "2 de mayo de 1945."], 2],
+  /* (191) */ ["¿En qué mes y año se lanzó el primer ataque nuclear sobre las poblaciones japonesas de Hiroshima y Nagasaki?", ["06 de agosto de 1945, Hiroshima y el 09 de agosto del mismo año en Nagasaki.", "05 de Junio de 1945, Hiroshima y el 09 de Septiembre del mismo año en Nagasaki.", "06 de agosto de 1945, Nagasaki y el 09 de agosto del mismo año en Hiroshima.", "Ninguno de los anteriores."], 0],
+  /* (192) */ ["¿En qué fecha y año finalizó la Segunda Guerra Mundial?", ["07 de Mayo 1945.", "06 de Junio 1945.", "17 de Julio 1945.", "02 de Septiembre 1945."], 3],
+  /* (193) */ ["¿En qué fecha murió Benito Mussolini?", ["28 de Abril de 1945.", "12 de Agosto de 1945.", "12 de Agosto de 1946.", "12 de Agosto de 1944."], 0],
+  /* (194) */ ["¿En qué año terminó la guerra de Vietnam?", ["25 de Junio de 1987.", "30 de Abril de 1975.", "23 de Marzo de 1987.", "21 de Septiembre de 1982."], 1],
+  /* (195) */ ["¿En qué año inició la Guerra del Golfo Pérsico?", ["28 de febrero de 1991.", "05 de Junio de 1980.", "02 de Agosto de 1990.", "Ninguno de los anteriores."], 2],
+  /* (196) */ ["La llamada Tierra Santa es la región donde nacieron las tres religiones consideradas las más importantes del mundo, ¿indique cuáles son estas religiones?", ["Judía, Musulmana y Cristiana.", "Católica, Apostólica y Romana.", "Laica, Cristiana y Budista.", "Ninguna de las anteriores."], 0],
+  /* (197) */ ["¿En qué fecha y año inició la guerra entre Irán e Irak?", ["22 de septiembre de 1980.", "02 de agosto de 1990.", "21 de Septiembre 1987.", "23 de Enero de 1990."], 0],
+  /* (198) */ ["¿Durante la 1ra. Guerra Mundial cuál fue la batalla más larga llevada a cabo?", ["Batalla de Sarajevo.", "Batalla de Bosnia.", "Batalla de Verdún.", "Batalla de Berlín."], 2],
+  /* (199) */ ["¿Cómo se llamaba el primer tanque en entrar en combate durante la 1ra. Guerra Mundial?", ["El A/V Alemán.", "El FT17 Francés.", "El Mark I Británico.", "El Sherman EE. UU."], 2],
+  /* (200) */ ["¿Por qué países estaba compuesta la Triple Alianza durante la 1ra Guerra Mundial?", ["Alemania, Austria-Hungría e Italia.", "Alemania, Austria-Hungría y el Imperio Otomano.", "Alemania, Austria-Hungría y Bulgaria.", "Ninguno de los anteriores."], 0]
+];
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+/* Claves de localStorage */
+var KEY_HISTORY = 'histExam_v1_history';
+var KEY_POOL = 'histExam_v1_pool';
+var KEY_SEEN = 'histExam_v1_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function makeRange(n) {
+  var r = [];
+  for (var i = 0; i < n; i++) r.push(i);
+  return r;
+}
+
+function pad2(n) {
+  return n < 10 ? '0' + n : '' + n;
+}
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) {
+      if (seenEver[k]) seenArr.push(parseInt(k, 10));
+    }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) {
+    console.warn('saveState error:', e);
+  }
+}
+
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) {
+      examHistory = JSON.parse(h);
+      if (!Array.isArray(examHistory)) examHistory = [];
+    }
+    attemptNumber = examHistory.length;
+
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) {
+      pool = JSON.parse(p);
+      if (!Array.isArray(pool)) pool = [];
+    } else {
+      pool = shuffle(makeRange(questions.length));
+    }
+
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) {
+        for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+      }
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = [];
+    seenEver = {};
+    attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) {
+        if (!inExam[i]) remaining.push(i);
+      }
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      submitExam(true);
+    }
+  }, 1000);
+}
+
+/* ============================================================
+   INFO EN PANTALLA
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) {
+    if (seenEver[k]) seen++;
+  }
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER DEL EXAMEN
+   ============================================================ */
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+
+    var normales = [];
+    var finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]);
+      else normales.push(q[1][o]);
+    }
+
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      sourceId: picked[j] + 1,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
+    });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = '  (#' + qd.sourceId + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
+  startTimer();
+}
+
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  var correct = 0;
+  var html = '';
+  if (auto) {
+    html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+  }
+
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">(#' + q.sourceId + ')</span><br>';
+    if (isCorrect) {
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    } else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct,
+    total: total,
+    pct: pct,
+    auto: !!auto
+  });
+
+  saveState();
+  renderInfo();
+  renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td>' +
+            '<td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = [];
+  attemptNumber = 0;
+  seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    if (!Array.isArray(q) || q.length !== 3) {
+      errores.push('Pregunta #' + (i + 1) + ': formato inválido');
+      continue;
+    }
+    if (!Array.isArray(q[1]) || q[1].length < 2) {
+      errores.push('Pregunta #' + (i + 1) + ': sin opciones');
+      continue;
+    }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push('Pregunta #' + (i + 1) + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) {
+      hayRespuestas = true; break;
+    }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) {
+      return;
+    }
+  }
+  renderExam();
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
+renderExam();
+</script>
+</body>
+</html>
