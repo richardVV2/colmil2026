@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Lenguaje 2025 - Corregido</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Lenguaje 2025</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;
+var QUESTIONS_PER_EXAM = 30;
+
+/* ============================================================
+   BANCO DE PREGUNTAS CORREGIDO (142)
+   Formato: [texto, [opciónA, opciónB, opciónC, opciónD], índice_correcto]
+   ============================================================ */
+var questions = [
+  /* (1) */ ["La personificación, como se deriva de su nombre, es un recurso que consiste en enunciar la realidad como si estuviese viva y animada, es decir, como si los objetos tuvieran voluntad, memoria, deseos e inteligencia. Dicho esto, ¿cuál de estos enunciados no corresponde a esta figura literaria?", ["La lluvia cae con fuerza contra mi ventana para recordarme que estoy sola.", "La puerta cerrada y aquel silencio burlaron la necesidad que Román tenía de estar con Ximena.", "La curiosidad mató a las esposas de Barba Azul.", "Compré un Picasso."], 3],
+  /* (2) */ ["Se dice que la lengua tiene doble articulación, ¿cuáles son?", ["Significado - significado", "morfemas - fonemas", "Expresión - contenido", "Significante - sonido"], 1],
+  /* (3) */ ["Una de las figuras cumbres de la literatura boliviana fue Nataniel Aguirre. Nació en Cochabamba un 10 de octubre de 1843. Fue abogado, diplomático, político y donde más destacó fue como escritor de novelas históricas. Entre sus obras muy leídas por los estudiantes, ¿cuál de estas obras no corresponde al escritor mencionado?", ["\"Juan de la Rosa\"", "\"Biografía de Simón Bolívar\"", "\"La Guerra del Pacífico\"", "\"Represalia de una mujer\""], 3],
+  /* (4) */ ["Arguedas, Alcides (1879-1946). ¿Cuál de estas obras no corresponde al escritor mencionado?", ["La Raza de Bronce", "Vida Criolla", "Pueblo Enfermo", "Arica"], 3],
+  /* (5) */ ["Antonio Díaz Villamil escribió ___ , novela publicada en 1945 que obtuvo el Primer Premio en La Paz por el interés histórico del tema, por el estilo correcto empleado y por la acertada interpretación de uno de los episodios más patéticos de la historia boliviana. Es:", ["\"Plácido Yáñez\"", "\"La Hoguera\"", "\"La Niña de sus Ojos\"", "Ninguna"], 0],
+  /* (6) */ ["Lara, Jesús (Muela, Cochabamba, 1909-1980). Narrador, poeta e investigador de la cultura quechua. La mayoría de sus obras son indigenistas y de compromiso social e historia. ¿Cuáles de estas obras corresponden a Jesús Lara?", ["Repete (1937), Sujnapura (1971), Tragedia del fin de Atahuallpa (1957).", "Arawiy arawiku (1927), Viaje a inkallajta (1927), Yanakuna (1957).", "Surumi (1943), Pauqarwara (1947), La poesía quechua (1947).", "Todas"], 3],
+  /* (7) */ ["¿Cómo se escribe correctamente la siguiente palabra?", ["Perspectiba isométrica.", "Perspectiva isométrica.", "Perspectiba hisométrica", "Perspectiva hisométrica."], 1],
+  /* (8) */ ["¿Cómo se escribe correctamente la siguiente palabra?", ["Ecstasis", "éxtacis", "éxtasis", "ecstacis"], 2],
+  /* (9) */ ["¿Cómo se escribe correctamente la siguiente palabra?", ["Extracción", "Extración", "Ecstracción", "Extraxión"], 0],
+  /* (10) */ ["¿Cómo se usa la letra Q?", ["Siempre seguida de \"a\".", "Casi siempre seguida de \"u\".", "Solo antes de consonantes.", "Nunca se usa en español."], 1],
+  /* (11) */ ["Se usa la letra \"J\" en el siguiente caso:", ["Antes de \"e\", \"i\".", "Sonido /j/ antes de \"a\", \"o\", \"u\".", "Solo al inicio de palabras.", "Solo en nombres propios."], 1],
+  /* (12) */ ["El ensayo filosófico y político \"Nuestra América\" fue publicado en el siglo XIX por el autor cubano:", ["José Martí", "Rubén Darío", "Simón Bolívar", "Gabriel García Márquez"], 0],
+  /* (13) */ ["¿Cuál de las siguientes es una oración con predicado nominal?", ["La casa es grande.", "El perro corre rápido.", "Juan come una manzana.", "Ella canta bien."], 0],
+  /* (14) */ ["¿Qué es una oración subordinada sustantiva?", ["La que realiza las funciones propias de un sustantivo dentro de una oración principal.", "La que califica a un sustantivo de la oración principal.", "La que funciona como complemento circunstancial del verbo principal.", "La que expresa una orden o mandato."], 0],
+  /* (15) */ ["¿Qué es una oración subordinada adjetiva?", ["La que realiza funciones propias de un sustantivo.", "La que complementa o califica a un sustantivo de la oración principal.", "La que funciona como complemento circunstancial.", "La que expresa una orden o mandato."], 1],
+  /* (16) */ ["¿Qué es una oración subordinada adverbial?", ["La que realiza funciones propias de un sustantivo.", "La que califica a un sustantivo.", "La que funciona como complemento circunstancial del verbo principal.", "La que expresa una orden o mandato."], 2],
+  /* (17) */ ["¿Qué palabra es triptongo?", ["Buey", "Pleito", "Flauta", "Ninguna de las anteriores"], 0],
+  /* (18) */ ["Llevan h inicial todas las palabras que principian con el diptongo:", ["ua", "iu", "ue", "ou"], 2],
+  /* (19) */ ["¿Qué palabra está mal escrita?", ["Holer", "Hidro", "Hialino", "Todas las anteriores"], 0],
+  /* (20) */ ["¿Qué palabra está mal escrita?", ["Hosambre", "Hovezuelo", "Hovario", "Todas las anteriores"], 3],
+  /* (21) */ ["Llevan h inicial todas las voces que principian con:", ["Hidru", "Hidre", "Hidra", "Ninguna de las anteriores"], 2],
+  /* (22) */ ["Deben escribirse con h inicial todas las palabras que empiezan con:", ["Ie", "Ue", "Ia", "Todas las anteriores"], 3],
+  /* (23) */ ["Se escriben con c las voces terminadas en:", ["encio", "ancio", "incio", "Ninguna de las anteriores"], 1],
+  /* (24) */ ["Los diminutivos terminados en \"ica\" llevan c, con la excepción de:", ["Cuentesica", "Partosica", "Risica", "Yerbesica"], 2],
+  /* (25) */ ["Se escriben con c las dicciones que terminan en:", ["icia", "acia", "cimiento", "Todas las anteriores"], 3],
+  /* (26) */ ["Se escriben con s las terminaciones en:", ["irse", "erse", "urse", "Todas las anteriores"], 3],
+  /* (27) */ ["¿Cuándo la letra z es reemplazada por la c?", ["Cuando la palabra singular termina en z pasa al plural.", "Cuando las palabras terminan en zas.", "Cuando se encuentran las letras a, e antes de la z.", "Ninguna de las anteriores."], 0],
+  /* (28) */ ["¿Qué palabra está mal escrita?", ["Zapa", "Zebosa", "Zaheir", "Zambullir"], 1],
+  /* (29) */ ["Se escribe con z las dicciones terminadas en:", ["ozo", "uzo", "izo", "ezo"], 2],
+  /* (30) */ ["Se escribe con z las dicciones terminadas en:", ["eza", "uzo", "soz", "zos"], 0],
+  /* (31) */ ["¿Qué palabra está mal escrita?", ["Kilómetro", "Quilogramo", "Kiosco", "Ninguna de las anteriores"], 3],
+  /* (32) */ ["Para que suene la u entre la g y las vocales e, i se le colocan dos puntos a la u. ¿Cómo se llaman esos dos puntos?", ["Apóstrofe", "Crema o diéresis", "Puntillas", "Puntos ortográficos"], 1],
+  /* (33) */ ["¿Qué palabra está mal escrita?", ["Gergón", "Geófago", "Insigne", "Ígneo"], 0],
+  /* (34) */ ["Se escribe con g las palabras terminadas en:", ["ai", "gua", "gia", "ie"], 2],
+  /* (35) */ ["Se escribe con g los infinitivos terminados en:", ["ger y gar", "gir y gur", "gor y ger", "ger y gir"], 3],
+  /* (36) */ ["¿Cuáles son las tres clases de puntos?", ["Punto, dos puntos y punto final.", "Punto y seguido, punto final y dos puntos.", "Punto y coma, dos puntos y punto.", "Punto y seguido, punto aparte y punto final."], 3],
+  /* (37) */ ["¿Cuántos puntos suspensivos se deben emplear en un escrito?", ["Dos o cuatro.", "Tres o cinco.", "Tres o seis.", "Siempre tres."], 3],
+  /* (38) */ ["Los paréntesis se usan en:", ["Escritos y operaciones algebraicas.", "Solo en escritos.", "Solo en operaciones algebraicas.", "Ninguno de los anteriores."], 0],
+  /* (39) */ ["¿Para qué se emplean las comillas?", ["Para resaltar una frase o párrafo de las demás.", "Para indicar que la palabra que está entre ellas pertenece a otro autor.", "Para separar palabras que no tienen relación.", "Para que el lector reflexione sobre las frases o párrafo escrito."], 1],
+  /* (40) */ ["¿Para qué se emplean las comillas?", ["Para evitar el choque de dos ideas o pensamientos.", "Para resaltar palabras.", "Para evitar la repetición de una misma palabra.", "Para separar palabras."], 1],
+  /* (41) */ ["¿Quién escribió el ensayo \"Tres Héroes\"?", ["José Martí", "José Martínez", "Josué Martí", "Josué Martínez"], 0],
+  /* (42) */ ["¿Quién es conocido por sostener la tesis de que el paraíso terrenal al que se refiere la Biblia está ubicado en Sorata?", ["Ricardo Jaimes Freyre", "Gabriel René Moreno", "Emeterio Villamil de Rada", "Jenny Moix Querató"], 2],
+  /* (43) */ ["¿Cuál es la novela boliviana más importante del siglo XIX, escrita por Nataniel Aguirre?", ["Juan de la Rosa", "Memorias de un soldado de la Independencia", "La hora del peligro", "Unitarismo y federalismo"], 0],
+  /* (44) */ ["¿Cuándo un predicado es verbal?", ["Cuando todos los verbos pueden usarse impersonalmente.", "Cuando la acción del verbo no pasa a ningún objeto.", "Cuando la acción del verbo se convierte en complemento directo.", "Cuando su núcleo es un verbo no copulativo conjugado."], 3],
+  /* (45) */ ["Las oraciones con predicativo verbal se clasifican en:", ["Oraciones activas y pasivas.", "Oraciones reflexivas y recíprocas.", "Oraciones intransitivas e impersonales.", "Oraciones seudorreflejas y transitivas."], 0],
+  /* (46) */ ["¿Qué es el queísmo y dequeísmo?", ["Son las equivocaciones de un acto escrito.", "Son dos incorrecciones en la construcción de enunciados.", "Son sílabas que no llevan tilde.", "Son principios que se imponen para el desarrollo de una actividad."], 1],
+  /* (47) */ ["Para saber si un verbo debe llevar o no la preposición \"de\", se debe:", ["Indicar su origen, procedencia y destino.", "Cambiar de sustantivo a plural.", "Transformar la expresión afirmativa en interrogante.", "Colocar al sujeto como parte de la oración."], 2],
+  /* (48) */ ["¿Quién escribió el poema \"Los Primeros Pasos del Olvido\"?", ["Calderón de la Barca", "Roberto Echazú", "Francisco de Quevedo", "Luis de Góngora"], 1],
+  /* (49) */ ["¿Quién escribió el poema \"Infancia\"?", ["Francisco de Terrazas", "Pablo Boullosa", "Mónica Velásquez", "Edmundo Camargo"], 3],
+  /* (50) */ ["¿Indique cuáles son novelas bolivianas?", ["Juan de la Rosa, Raza de Bronce, Los Deshabitados.", "Orgullo y prejuicio, La tierra baldía, Moby Dick.", "Sangre de campeón, La ventana alta, Lo que el viento se llevó.", "Un grito desesperado, Juventud en éxtasis, Volar sobre el pantano."], 0],
+  /* (51) */ ["¿Quién escribió la novela \"Juan de la Rosa\"?", ["Julio Verne", "Paulo Coelho", "Nataniel Aguirre", "Gabriel García Márquez"], 2],
+  /* (52) */ ["¿Quién escribió la novela \"Raza de Bronce\"?", ["Jorge Luis Borges", "Pablo Neruda", "Julio Cortázar", "Alcides Arguedas"], 3],
+  /* (53) */ ["¿Quién escribió la novela \"Los Deshabitados\"?", ["Isabel Allende", "Mario Vargas Llosa", "Marcelo Quiroga Santa Cruz", "Miguel de Cervantes"], 2],
+  /* (54) */ ["¿En qué año fue publicada la novela \"Juan de la Rosa\"?", ["1985", "1885", "1895", "1785"], 1],
+  /* (55) */ ["¿Cómo se llaman las mayúsculas iniciales de los versos de una poesía?", ["Poesía versal.", "Mayúscula versal.", "Letras versales.", "Todas las anteriores."], 2],
+  /* (56) */ ["¿Quiénes llevan mayúscula inicial?", ["Los nombres de los pueblos.", "Los nombres y apellidos de las personas.", "Los nombres de las instituciones.", "Todas las anteriores."], 3],
+  /* (57) */ ["¿Cuándo se escribe con minúscula los nombres de cargos importantes?", ["Cuando la jerarquía del cargo es menor a otra.", "Cuando el cargo es subrayado.", "Cuando acompaña al nombre propio.", "Ninguna de las anteriores."], 2],
+  /* (58) */ ["¿Por qué la letra B es unísona?", ["Porque es una sola.", "Porque conserva el mismo sonido antes de cualquiera de las vocales.", "Porque es labial y se pronuncia con los labios.", "Porque es la segunda letra del alfabeto."], 1],
+  /* (59) */ ["¿Qué palabras llevan B inicial?", ["Todas las palabras que empiezan con bu.", "Todas las palabras que empiezan con bur.", "Todas las palabras que empiezan con bus.", "Todas las anteriores."], 3],
+  /* (60) */ ["¿Cuáles son las palabras que llevan b inicial?", ["Las que empiezan con bi, bir y bis.", "Las que empiezan con bu, bur y bus.", "Las que empiezan con be, ber y bes.", "Las que empiezan con ba, bar y bas."], 1],
+  /* (61) */ ["Se escribe con b cuando las palabras empiezan con:", ["Las que empiezan con be, ver, bir y bis.", "Las que empiezan con bu, bur y bus.", "Las que empiezan con be, ver y bes.", "Las que empiezan con ba, bar y bas."], 1],
+  /* (62) */ ["¿Qué significa la voz latina \"Bis\"?", ["Dúo o par", "Espacio o tiempo", "Dos o doble", "Repetir o volver"], 2],
+  /* (63) */ ["¿Cuál de estas palabras está mal escrita?", ["Exhibir", "Herbir", "Recibir", "Incumbir"], 1],
+  /* (64) */ ["Las dicciones terminadas en \"bilidad\" se escriben con b, con excepción de:", ["Inmovilidad", "Insaciabilidad", "Mutabilidad", "Apacibilidad"], 0],
+  /* (65) */ ["¿Qué palabra no lleva b?", ["Andaba", "Estábamos", "Íbamos", "Estubieron"], 3],
+  /* (66) */ ["¿Qué palabra está mal escrita?", ["Bocaza", "Estubo", "Sorber", "Caber"], 1],
+  /* (67) */ ["Se escribe con b antes de las siguientes consonantes:", ["B o S", "M o N", "R o L", "P o T"], 2],
+  /* (68) */ ["¿Qué palabra está mal escrita?", ["Imperativa", "Perciva", "Eruptiva", "Relativa"], 1],
+  /* (69) */ ["¿Después de qué sílaba se escribe siempre con v?", ["al", "ad", "ar", "as"], 1],
+  /* (70) */ ["¿Qué palabra está mal escrita?", ["Gravar", "Nabal", "Cavo", "Ninguna"], 3],
+  /* (71) */ ["¿Qué palabra está mal escrita?", ["Adbervio", "Vesubio", "Reverbero", "Todas las anteriores"], 0],
+  /* (72) */ ["¿Cómo se forma un diptongo?", ["La unión de una vocal fuerte con una débil.", "La unión de una vocal débil con una fuerte.", "Cuando dos vocales juntas se pronuncian en una sola emisión de voz.", "Todas las anteriores."], 3],
+  /* (73) */ ["¿Qué palabra no es un diptongo?", ["Aire", "Peine", "Marea", "Estoico"], 2],
+  /* (74) */ ["¿Qué palabra no es un diptongo?", ["Naipe", "Leal", "Adeuda", "Aplaudo"], 1],
+  /* (75) */ ["¿De qué género es la crónica?", ["Narrativo", "Dramático", "Narrativo - Histórico", "Histórico"], 2],
+  /* (76) */ ["¿Qué significa la palabra etimológica \"Cronos\"?", ["Pausa", "Verso", "Espacio", "Tiempo"], 3],
+  /* (77) */ ["¿A qué tiempo se remontan las primeras obras de crónicas?", ["La Edad Media", "Los primeros tiempos del cristianismo", "El tiempo neolítico", "Tiempo de Renacimiento"], 0],
+  /* (78) */ ["¿Quién fue el principal cronista de la América naciente?", ["Fray Bartolomé Mitre", "Fray Luis de León", "Fray Bartolomé de las Casas", "Fray Tuck"], 2],
+  /* (79) */ ["¿Quién es el autor de la poesía \"Al oído del Cristo\"?", ["Octavio Paz", "Gabriela Mistral", "Oliverio Girondo", "Nicanor Parra"], 1],
+  /* (80) */ ["¿Quién es el autor de la novela \"Felipe Delgado\"?", ["Ramón Rocha Monroy", "Mario Vargas Llosa", "Alfredo Flores", "Jaime Sáenz"], 3],
+  /* (81) */ ["¿Quién es el autor de la novela \"Jonás y la Ballena Rosada\"?", ["Nataniel Aguirre", "Wolfango Montes", "Bartolomé Arzans de Orsúa y Vela", "Arturo Borda"], 1],
+  /* (82) */ ["¿Quién es el autor de la novela \"La Chaskañawi\"?", ["Oscar Cerruto", "Jorge Suárez", "Carlos Medinaceli", "Wolfango Montes"], 2],
+  /* (83) */ ["Según Jaime Herrera, autor de textos sobre escritura y redacción, ¿por qué se escribe un ensayo?", ["Porque es necesario practicar antes de publicar.", "Porque el ensayo permite corregir los errores.", "Porque existe una necesidad de comunicar una idea.", "Ninguna de las anteriores."], 2],
+  /* (84) */ ["¿Cuál es la estructura de un ensayo?", ["Introducción, desarrollo, conclusión.", "Antecedentes, introducción, desarrollo, conclusión.", "Antecedentes, introducción, desarrollo, conclusión, recomendación.", "Introducción, desarrollo, conclusión, recomendación."], 0],
+  /* (85) */ ["El escritor Juan Rulfo escribió la novela ___, considerada por la crítica como una obra maestra de la literatura en español.", ["Pedro Páramo", "El llano en llamas", "El gallo de oro", "La Odisea"], 0],
+  /* (86) */ ["¿Qué son las palabras primitivas?", ["Son palabras originales que no provienen de otras palabras.", "Son palabras que se forman añadiendo prefijos.", "Son palabras que se forman añadiendo sufijos.", "Son palabras de origen extranjero."], 0],
+  /* (87) */ ["¿Qué son las palabras derivadas?", ["Son palabras originales que no provienen de otras.", "Se forman a partir de la palabra primitiva añadiendo prefijos o sufijos.", "Son palabras de origen extranjero.", "Son palabras que no tienen raíz."], 1],
+  /* (88) */ ["¿Qué son los Homónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que, siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 1],
+  /* (89) */ ["¿Qué son los Sinónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 0],
+  /* (90) */ ["¿Qué son los Parónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que, siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 2],
+  /* (91) */ ["¿Qué son los antónimos?", ["Son términos de forma distinta y de significación semejante.", "Son aquellas palabras cuyos significados son opuestos entre sí.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 1],
+  /* (92) */ ["¿Qué son los Homógrafos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que, siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 1],
+  /* (93) */ ["¿Qué significa la palabra \"Verbigracia\"?", ["Por ejemplo", "Al contrario", "Por lo tanto", "Porque"], 0],
+  /* (94) */ ["¿Cuándo se debe escribir con letra mayúscula?", ["Después de un punto seguido.", "Después de un punto aparte.", "Cuando es la primera palabra de un escrito.", "Todas las anteriores."], 3],
+  /* (95) */ ["¿En cuál de los siguientes casos se usa mayúscula después de los dos puntos?", ["Después de la coma.", "Cuando se reproduce una cita textual.", "Después del punto y coma.", "Nunca se usa mayúscula después de dos puntos."], 1],
+  /* (96) */ ["Las funciones del lenguaje son:", ["Denotativa o referencial, emotiva o expresiva, conativa o apelativa y poética o estética.", "Emotiva o expresiva, denotativa o referencial y conativa o apelativa.", "Emotiva o expresiva, conativa o apelativa y denotativa o referencial y explicativa.", "Estética, referencial, expresiva, apelativa y cuantitativa."], 0],
+  /* (97) */ ["La siguiente expresión: \"el noticiero ya empezó\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 0],
+  /* (98) */ ["La siguiente expresión: \"Oye, oye, espera un momento\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 2],
+  /* (99) */ ["La siguiente expresión: \"qué desastre produjeron las lluvias\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 1],
+  /* (100) */ ["La coma se usa antes de las conjunciones adversativas:", ["Mas, pero, aunque", "Y, o", "Luego, sí que", "Porque, ya que"], 0],
+  /* (101) */ ["Los géneros narrativos son:", ["La épica, la novela, el cuento y el drama.", "La épica, la novela y el cuento.", "La épica, la novela, el cuento y la narración original.", "La épica, la novela, el cuento y la narración ampliada."], 1],
+  /* (102) */ ["Los elementos que intervienen en la narración son:", ["Narrador, acción, personajes e interés.", "Narrador, personajes e interés.", "Narrador, personajes, interés y acción.", "Narrador, personajes, lugar, tiempo y acción."], 3],
+  /* (103) */ ["Dentro de las figuras de dicción, la repetición comprende:", ["Anáfora, reduplicación, polisíndeton y concatenación.", "Anáfora, reduplicación, polisíndeton y aliteración.", "El epíteto, anáfora, reduplicación, polisíndeton y aliteración.", "Todas"], 0],
+  /* (104) */ ["Dentro de las figuras, la combinación comprende:", ["Onomatopeya, aliteración y similicadencia.", "Elipsis, asíndeton y adjunción.", "Epíteto.", "Polisíndeton, concatenación, conversión y anáfora."], 0],
+  /* (105) */ ["Dentro de las figuras de dicción, el asíndeton se relaciona con:", ["Repetir al principio de la frase la misma palabra.", "Suprime conjunciones copulativas.", "Suprime verbos.", "Utiliza la semejanza fonética entre las palabras."], 1],
+  /* (106) */ ["Recordemos que la oración es la palabra o el conjunto de palabras con unidad de sentido y autonomía sintáctica, existiendo dos clases: oraciones simples y oraciones compuestas. Dicho esto, identifica lo siguiente: \"El nexo puede ser un signo, una letra o una palabra\".", ["Oración compuesta.", "Oración simple.", "Ninguna.", "Ambas."], 1],
+  /* (107) */ ["Identifica qué clase de oración es la siguiente: \"En el corazón tenía la espina de una pasión\".", ["Oración compuesta.", "Oración simple.", "Ninguna.", "Ambas."], 1],
+  /* (108) */ ["Dentro de la poesía boliviana, José Domingo Cortés en su antología \"América Latina\" es el primero que incorpora a tres poetas bolivianos:", ["Manuel José Cortés, Ricardo José Bustamante y Mariano Ramallo.", "Jesús Lara, Juan Wallparrimachí y Alcides Arguedas.", "Ninguno.", "Ambos."], 0],
+  /* (109) */ ["Los principales representantes del movimiento modernista en Bolivia fueron:", ["Franz Tamayo.", "Jaimes Freyre.", "Gregorio Reynolds.", "Todos."], 3],
+  /* (110) */ ["Las oraciones compuestas coordinadas reciben el nombre del nexo que las une y pueden ser:", ["Copulativas (o), disyuntivas (y), adversativas (de modo), consecutivas (pero).", "Copulativas (y), disyuntivas (o), adversativas (pero), consecutivas (luego, así que).", "Copulativas (y), disyuntivas (de modo), adversativas (pero), consecutivas (o).", "Copulativas (de modo), disyuntivas (o), adversativas (pero), consecutivas (y)."], 1],
+  /* (111) */ ["Las oraciones que expresan opción entre dos o más posibilidades se denominan:", ["Copulativa.", "Disyuntiva.", "Consecutiva.", "Adversativa."], 1],
+  /* (112) */ ["Lee atentamente la siguiente definición y encierra la respuesta correcta: considerada como aquella ciencia que estudia el sistema de leyes, normas y reglas que rigen la correcta utilización de un idioma en particular.", ["Lingüística.", "Gramática.", "Sintaxis.", "Metalingüística."], 1],
+  /* (113) */ ["Ciencia que estudia la significación de las palabras, relacionándolas con otras, investigando los cambios de significado y sus causas.", ["Semántica.", "Habla.", "Etimología.", "Ortografía."], 0],
+  /* (114) */ ["Acto individual del ejercicio del lenguaje en forma de mensaje realizado por una persona.", ["Lenguaje.", "Lengua.", "Habla.", "Dialecto."], 2],
+  /* (115) */ ["Es el conjunto sistemático de signos que permite la comunicación verbal.", ["Lenguaje.", "Lengua.", "Habla.", "Dialecto."], 1],
+  /* (116) */ ["Parte de la gramática que enseña a escribir correctamente las palabras de una lengua o idioma.", ["Ortografía.", "Semántica.", "Fonética.", "Etimología."], 0],
+  /* (117) */ ["Las palabras se clasifican por su origen, acentuación y significado. Por su significado se clasifican en:", ["Sinónimas, antónimas, homónimas y parónimas.", "Primitivas, derivadas y compuestas.", "Agudas, graves o llanas, esdrújulas y sobreesdrújulas.", "Diptongos, hiatos y triptongos."], 0],
+  /* (118) */ ["Por su acentuación las palabras se clasifican en:", ["Sinónimas, antónimas, homónimas y parónimas.", "Primitivas, derivadas y compuestas.", "Agudas, graves o llanas, esdrújulas y sobreesdrújulas.", "Diptongos, hiatos y triptongos."], 2],
+  /* (119) */ ["Por su acentuación, las palabras acentuadas como \"canción, compás\" corresponden a:", ["Agudas.", "Graves o llanas.", "Esdrújulas.", "Sobreesdrújulas."], 0],
+  /* (120) */ ["Por su acentuación, las palabras acentuadas como \"fácilmente, hábilmente\" corresponden a:", ["Agudas.", "Graves o llanas.", "Esdrújulas.", "Sobreesdrújulas."], 3],
+  /* (121) */ ["Las palabras que tienen significado de contraste u oposición como \"llenar-vaciar\" se denominan:", ["Sinónimas.", "Antónimas.", "Parónimas.", "Homónimas."], 1],
+  /* (122) */ ["El acento es la mayor fuerza de voz con la que leemos una sílaba en una palabra, que puede ser: prosódico, ortográfico y diacrítico. Este último se ocupa de:", ["Todas las palabras sin tilde. (Perro)", "Denota una rayita oblicua. (Práctico)", "Permite distinguir el significado de dos palabras: (él - el)", "Todos o ninguno."], 2],
+  /* (123) */ ["Los complementos de una oración pueden ser: directo, indirecto, circunstancial, de régimen verbal, complemento de agente y complemento predicativo. Ejemplo: \"La carta fue escrita por la secretaria\". Dicha oración corresponde a:", ["Complemento directo.", "Complemento indirecto.", "Complemento circunstancial.", "Complemento de agente."], 3],
+  /* (124) */ ["Seleccione la palabra correcta.", ["Conciente", "Consciente", "Consiente", "Ninguna de las anteriores"], 1],
+  /* (125) */ ["Seleccione la palabra correcta.", ["Amanezer", "Amaneser", "Amanecer", "Ninguna de las anteriores"], 2],
+  /* (126) */ ["Seleccione la palabra correcta.", ["Ovediencia", "Obediencia", "Obediensia", "Ovediensia"], 1],
+  /* (127) */ ["Seleccione la palabra correcta.", ["Sacerdotiza", "Saserdotisa", "Sacerdotisa", "Sazerdotiza"], 2],
+  /* (128) */ ["Seleccione la respuesta correcta.", ["Ambar", "Hámbar", "Ánvar", "Ámbar"], 3],
+  /* (129) */ ["Seleccione la respuesta correcta.", ["Susecíón", "Sucesión", "Suceción", "Zucesión"], 1],
+  /* (130) */ ["¿En qué década se dio el boom literario latinoamericano?", ["1990", "1800", "1960-1970", "1890"], 2],
+  /* (131) */ ["¿Cuáles son los verboides?", ["Infinitivo.", "Participio.", "Gerundio.", "Todos los anteriores."], 3],
+  /* (132) */ ["Los verboides participios terminan en:", ["Ado o ido.", "Ando o endo.", "Ar, er o ir.", "Ninguna de las anteriores."], 0],
+  /* (133) */ ["Los verboides gerundios terminan en:", ["Ado o ido.", "Ando o endo.", "Ar, er o ir.", "Ninguna de las anteriores."], 1],
+  /* (134) */ ["Los verboides infinitivos terminan en:", ["Ado o ido.", "Ar o endo.", "Ar, er o ir.", "Ninguna de las anteriores."], 2],
+  /* (135) */ ["Los verboides participios terminan en:", ["Edo o ido.", "Aroendo.", "Ar, er o ir.", "Ninguna de las anteriores."], 3],
+  /* (136) */ ["¿Cómo se clasifican los tipos de párrafos según su función?", ["Introducción, desarrollo y conclusión.", "Introducción, cuerpo, conclusión y fin.", "Inicio, cuerpo, fin.", "Ninguno de los anteriores."], 0],
+  /* (137) */ ["El adjetivo es la palabra que acompaña al sustantivo para calificarlo o determinarlo y delimitar su extensión. Se clasifica en dos grandes grupos:", ["Calificativo y determinativo.", "Comparativo y superlativo.", "Demostrativo y posesivo.", "Gentilicios y ordinales."], 0],
+  /* (138) */ ["Los adjetivos calificativos son: positivo, comparativo y superlativo. Ejemplo: \"La hermosísima María\" corresponde a:", ["Positiva.", "Comparativa.", "Superlativa.", "Ninguno."], 2],
+  /* (139) */ ["¿Cuál de estas conjugaciones corresponde al futuro perfecto del modo subjuntivo?", ["Jugué", "Haya jugado", "Hubiere jugado", "Jugaremos"], 2],
+  /* (140) */ ["Es la lengua de una persona en particular, su propia manera de hablar, lo que se denomina idiosincrasia lingüística.", ["Dialecto.", "Idiolecto.", "Idioma.", "Habla."], 1],
+  /* (141) */ ["Disciplina gramatical que se refiere a las relaciones entre palabras dentro de un enunciado lingüístico.", ["Gramática.", "Sintaxis.", "Morfología.", "Sintagma."], 1],
+  /* (142) */ ["Considerada como aquella ciencia que estudia el sistema de leyes, normas y reglas que rigen la correcta utilización del idioma en particular; aquella parte que estudia el hablar y escribir correctamente una lengua.", ["Gramática.", "Sintaxis.", "Morfología.", "Sintagma."], 0]
+];
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+var KEY_HISTORY = 'langExam_v2_history';
+var KEY_POOL = 'langExam_v2_pool';
+var KEY_SEEN = 'langExam_v2_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function makeRange(n) {
+  var r = [];
+  for (var i = 0; i < n; i++) r.push(i);
+  return r;
+}
+
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) { if (seenEver[k]) seenArr.push(parseInt(k, 10)); }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) { console.warn('saveState error:', e); }
+}
+
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) { examHistory = JSON.parse(h); if (!Array.isArray(examHistory)) examHistory = []; }
+    attemptNumber = examHistory.length;
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) { pool = JSON.parse(p); if (!Array.isArray(pool)) pool = []; }
+    else { pool = shuffle(makeRange(questions.length)); }
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) { for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true; }
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = []; seenEver = {}; attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) { if (!inExam[i]) remaining.push(i); }
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); }
+  }, 1000);
+}
+
+/* ============================================================
+   INFO EN PANTALLA
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) { if (seenEver[k]) seen++; }
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER DEL EXAMEN
+   ============================================================ */
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+
+    var normales = [];
+    var finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]);
+      else normales.push(q[1][o]);
+    }
+
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      sourceId: picked[j] + 1,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
+    });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = '  (#' + qd.sourceId + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
+  startTimer();
+}
+
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  var correct = 0;
+  var html = '';
+  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">(#' + q.sourceId + ')</span><br>';
+    if (isCorrect) {
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    } else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct,
+    total: total,
+    pct: pct,
+    auto: !!auto
+  });
+
+  saveState();
+  renderInfo();
+  renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td>' +
+            '<td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = [];
+  attemptNumber = 0;
+  seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    if (!Array.isArray(q) || q.length !== 3) { errores.push('Pregunta #' + (i + 1) + ': formato inválido'); continue; }
+    if (!Array.isArray(q[1]) || q[1].length < 2) { errores.push('Pregunta #' + (i + 1) + ': sin opciones'); continue; }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push('Pregunta #' + (i + 1) + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) { hayRespuestas = true; break; }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) return;
+  }
+  renderExam();
+});
+
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
+renderExam();
+</script>
+</body>
+</html>
