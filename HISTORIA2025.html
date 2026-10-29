@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Historia de Bolivia 2025</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Historia de Bolivia 2025</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;
+var QUESTIONS_PER_EXAM = 30;
+
+/* ============================================================
+   BANCO — Historia de Bolivia 2025 (150 preguntas)
+   Formato: [texto, [opciones], índice_correcto, numeroOriginal]
+   índice: 0=A, 1=B, 2=C, 3=D
+   ============================================================ */
+var questions = [
+  // c1
+  ["¿En qué continente surgió la especie humana según la evidencia científica?", ["África, específicamente Etiopía.", "Europa.", "Asia.", "Oceanía."], 0, 1],
+  // c2
+  ["¿Cuál es la cultura precolombina que construyó Puma Punku?", ["Inca.", "Tiwanaku.", "Moxos.", "Chiripa."], 1, 2],
+  // c3
+  ["¿Qué recurso utilizaban los Tiwanaku para regar sus cultivos en zonas altas?", ["Quipus.", "La mita.", "Canales de riego y terrazas agrícolas.", "Monedas de plata."], 2, 3],
+  // c4
+  ["La cultura Chiripa se destacó por:", ["Construcción de Puma Punku.", "Uso de quipus y metalurgia del hierro.", "Navegación oceánica y escritura alfabética.", "Arquitectura ceremonial, agricultura avanzada y cerámica decorada."], 3, 4],
+  // c5 (opciones C, D añadidas)
+  ["¿En qué región actual de Bolivia se desarrolló la cultura Moxos?", ["Llanos de Moxos, actual departamento de Beni.", "Lago Titicaca.", "Valles de Cochabamba.", "Chaco boliviano."], 0, 5],
+  // c6
+  ["¿Cuál es el principal lago de Bolivia?", ["Lago Poopó.", "Lago Titicaca.", "Lago Uru Uru.", "Lago Rogaguado."], 1, 6],
+  // c7
+  ["¿Qué cordillera atraviesa gran parte de Bolivia?", ["Cordillera de la Costa.", "Sierra de la Ventana.", "Cordillera de los Andes.", "Montes Apalaches."], 2, 7],
+  // c8
+  ["¿Qué cultura es conocida por sus médicos itinerantes?", ["Uru.", "Moxeños.", "Chiripas.", "Kallawayas."], 3, 8],
+  // c9
+  ["¿Cuál era el dios al que se rendía culto en Tiahuanaco?", ["Viracocha, el dios de los báculos o de las varas.", "Inti.", "Pachamama.", "Ekeko."], 0, 9],
+  // c10
+  ["¿Una de las instituciones más importantes del gobierno colonial en América fue?", ["Cabildo.", "Virreinato.", "Real Audiencia.", "Encomienda."], 1, 10],
+  // c11
+  ["¿Cuántas intendencias tenía bajo su control la Real Audiencia de Charcas?", ["3.", "4.", "5.", "7."], 2, 11],
+  // c12
+  ["¿Qué tipo de sistema político tuvo la civilización de Tiahuanaco?", ["Democrático.", "Federal.", "Anarquista.", "Teocrático y centralizado."], 3, 12],
+  // c13 (opciones C, D añadidas)
+  ["¿Qué cultura vivía en el lago Poopó y se dedicaba a la pesca?", ["Cultura Uru.", "Aymara.", "Quechua.", "Kallawaya."], 0, 13],
+  // c14
+  ["¿Cuál fue una de las principales técnicas agrícolas de Tiwanaku?", ["Quipus.", "Sukakollos.", "Mita.", "Chinampas."], 1, 14],
+  // c15
+  ["¿Cuál es la cultura más antigua de América del Sur?", ["Tiwanaku.", "Maya.", "Civilización de Caral.", "Inca."], 2, 15],
+  // c16
+  ["¿Cuál es la principal lengua originaria del altiplano boliviano junto al quechua?", ["Guaraní.", "Moxeño.", "Chiquitano.", "Aimara."], 3, 16],
+  // c17
+  ["¿Qué cultura construyó aldeas circulares en piedra?", ["Cultura Chiripa.", "Tiwanaku.", "Inca.", "Moxos."], 0, 17],
+  // c18
+  ["¿En qué región actual se asentaron los guaraníes?", ["Altiplano.", "Valles y llanuras del sureste de Bolivia.", "Costa del Pacífico.", "Amazonía norte."], 1, 18],
+  // c19
+  ["¿Qué instrumento musical es propio de los pueblos del Chaco?", ["Erke.", "Charango.", "Violín chaqueño.", "Quena."], 2, 19],
+  // c20
+  ["¿Qué mineral fue explotado desde tiempos precolombinos en Bolivia?", ["Estaño.", "Litio.", "Hierro.", "Plata y oro."], 3, 20],
+  // c21 (opciones C, D añadidas)
+  ["¿Qué tipo de cerámica producían los Wancarani?", ["Lisa, muy fina, pulida o alisada con espátula.", "Vidriada.", "Pintada con motivos geométricos.", "Incisa con figuras de animales."], 0, 21],
+  // c22
+  ["¿Cuántas intendencias tenía bajo su control la Real Audiencia de Charcas?", ["2.", "5.", "4.", "6."], 1, 22],
+  // c23
+  ["¿Qué actual departamento concentra restos arqueológicos de Tiwanaku?", ["Potosí.", "Oruro.", "La Paz.", "Cochabamba."], 2, 23],
+  // c24
+  ["¿Cuál fue la función de los \"quipus\" en las culturas andinas?", ["Escribir leyes.", "Contar ganado.", "Medir tierras.", "Registrar información mediante cuerdas y nudos."], 3, 24],
+  // c25
+  ["¿Qué cultura introdujo el uso del bronce en el altiplano?", ["Tiwanaku.", "Inca.", "Chiripa.", "Moxos."], 0, 25],
+  // c26
+  ["Indique tres batallas que se desarrollaron durante la Confederación Perú-Boliviana.", ["Guaqui, Tumusla e Ingavi.", "Yanacocha, Paucarpata y Yungay.", "Ayacucho, Junín y Pichincha.", "Tarapacá, Pisagua y Alto de la Alianza."], 1, 26],
+  // c27
+  ["¿Qué cultura originaria consideraba a las montañas como seres sagrados?", ["Guaraníes.", "Moxeños.", "Incas.", "Kallawayas."], 2, 27],
+  // c28
+  ["¿Qué cultura desarrolló el cultivo de coca en los valles?", ["Tiwanaku.", "Chiripa.", "Moxos.", "Incas."], 3, 28],
+  // c29
+  ["¿Cómo se llamaba nuestra nación en los tiempos incaicos?", ["Parte del Collasuyo, dentro del Tahuantinsuyo.", "Imperio del Sol.", "Nación Guaraní.", "Confederación del Chaco."], 0, 29],
+  // c30
+  ["¿Qué cultura practicaba el intercambio de productos a través del \"trueque\"?", ["Moxos.", "Incas.", "Chiripa.", "Uru."], 1, 30],
+  // c31
+  ["¿En qué año llegó Cristóbal Colón a América?", ["1490.", "1491.", "12 de octubre de 1492.", "1493."], 2, 31],
+  // c32
+  ["¿Fue la principal causa de la colonización española en América?", ["La hambruna en España.", "El turismo.", "La ciencia.", "La búsqueda de riquezas y expansión del poder."], 3, 32],
+  // c33
+  ["¿Qué sistema de trabajo imponía a los indígenas realizar labores forzadas en las minas?", ["La mita.", "La encomienda.", "La hacienda.", "La reducción."], 0, 33],
+  // c34
+  ["¿Qué metal precioso fue el más explotado en Potosí durante la colonia?", ["Oro.", "Plata.", "Estaño.", "Cobre."], 1, 34],
+  // c35
+  ["¿Qué institución administraba las doctrinas religiosas en la colonia?", ["Cabildo.", "Ejército.", "Iglesia católica.", "Real Audiencia."], 2, 35],
+  // c36 (opciones C, D añadidas)
+  ["¿Qué cultura resistió fuertemente la colonización en el Chaco boliviano?", ["Incas.", "Moxeños.", "Chiquitanos.", "Guaraníes."], 3, 36],
+  // c37
+  ["¿En qué año y dónde se dio el primer grito libertario de América?", ["25 de mayo de 1809, en La Plata.", "6 de agosto de 1825, en Sucre.", "16 de julio de 1809, en La Paz.", "2 de agosto de 1825, en Potosí."], 0, 37],
+  // c38
+  ["¿Quién fue el líder indígena que encabezó la rebelión del altiplano?", ["Tomás Katari.", "Túpac Katari, también conocido como Julián Apaza.", "Túpac Amaru II.", "Bartolina Sisa."], 1, 38],
+  // c39
+  ["¿Cuál fue la esposa de Túpac Katari y co-lideresa de la rebelión de 1781?", ["Juana Azurduy.", "Micaela Bastidas.", "Bartolina Sisa.", "Gregoria Apaza."], 2, 39],
+  // c40
+  ["¿Qué sistema económico controlaba el comercio colonial con España?", ["Libre mercado.", "Trueque.", "Feudalismo.", "Monopolio comercial."], 3, 40],
+  // c41
+  ["¿Qué animal introducido por los españoles revolucionó el transporte en América?", ["El caballo.", "La llama.", "El buey.", "La mula."], 0, 41],
+  // c42
+  ["¿Qué tipo de arquitectura introdujeron los españoles en América?", ["Rascacielos.", "Arquitectura colonial con iglesias, cabildos y trazado en damero.", "Pirámides.", "Ciudades flotantes."], 1, 42],
+  // c43
+  ["¿Qué lengua europea se impuso como oficial durante la colonia?", ["Inglés.", "Portugués.", "Español.", "Francés."], 2, 43],
+  // c44 (opciones B, C, D añadidas)
+  ["¿Qué actividad económica creció junto a la minería en la colonia?", ["Turismo.", "La pesca.", "La artesanía.", "Ganadería y agricultura."], 3, 44],
+  // c45
+  ["Tomás Katari fue ejecutado por despeñamiento en Chataquilla, cerca de La Plata. ¿En qué fecha ocurrió?", ["15 de enero de 1781.", "1780.", "1782.", "1810."], 0, 45],
+  // c46
+  ["¿Cuál fue una de las consecuencias demográficas más graves de la colonización?", ["Aumento de la población indígena.", "Drástica disminución de la población indígena.", "Migración masiva a Europa.", "Crecimiento urbano acelerado."], 1, 46],
+  // c47
+  ["¿Qué producto agrícola fue llevado de América a Europa tras el intercambio colombino?", ["Trigo.", "Arroz.", "La papa.", "La vid."], 2, 47],
+  // c48
+  ["¿Quién registró en un diario los hechos ocurridos en la Republiqueta de Ayopaya?", ["Túpac Katari.", "Esteban Arze.", "Juana Azurduy.", "José Santos Vargas, \"el Tambor Vargas\"."], 3, 48],
+  // c49
+  ["¿Qué año y dónde sucede el levantamiento contra el dominio español dirigido por Esteban Arze?", ["14 de septiembre de 1810, en Cochabamba.", "25 de mayo de 1809, en Sucre.", "6 de agosto de 1825, en La Paz.", "1781, en La Paz."], 0, 49],
+  // c50
+  ["¿Qué ruta conectaba el Virreinato del Río de la Plata con el Alto Perú?", ["Ruta del Estaño.", "Camino Real de los Charcas.", "Camino del Inca a Quito.", "Ruta del Caucho."], 1, 50],
+  // c51 (opciones C, D añadidas)
+  ["¿Qué institución controlaba la educación formal en la colonia?", ["Cabildo.", "Universidad.", "Iglesia católica.", "Encomienda."], 2, 51],
+  // c52
+  ["¿Cuál era la principal función del cabildo colonial?", ["Defensa militar.", "Justicia colonial.", "Recaudar impuestos.", "Administración y gobierno local de la ciudad."], 3, 52],
+  // c53
+  ["¿Qué ciudad fue sede de la Real Audiencia de Charcas?", ["La Plata, hoy Sucre.", "Potosí.", "La Paz.", "Cochabamba."], 0, 53],
+  // c54
+  ["¿Cuál fue la última batalla librada en el Alto Perú contra la corona española?", ["Ayacucho.", "Batalla de Tumusla.", "Junín.", "Guaqui."], 1, 54],
+  // c55
+  ["¿Qué cultivo americano se convirtió en base económica para el Caribe colonial?", ["Papa.", "Cacao.", "Caña de azúcar.", "Trigo."], 2, 55],
+  // c56
+  ["¿Qué pueblo originario del oriente boliviano fue sometido a reducciones jesuíticas?", ["Incas.", "Aymaras.", "Uru.", "Guaraníes, chiquitanos y moxeños."], 3, 56],
+  // c57
+  ["¿Qué recurso natural motivó la creación de las \"reparticiones\" forzosas?", ["Minerales, especialmente plata y oro.", "Caucho.", "Coca.", "Madera."], 0, 57],
+  // c58
+  ["¿Qué figura jurídica protegía a los indígenas en teoría, pero no en la práctica?", ["Mita.", "Encomienda.", "Reducción.", "Cabildo."], 1, 58],
+  // c59
+  ["¿Qué práctica prohibió la corona española para evitar rebeliones indígenas?", ["Prohibir el idioma.", "Prohibir la vestimenta.", "Prohibir que los indígenas portaran armas o se organizaran militarmente.", "Prohibir la agricultura."], 2, 59],
+  // c60
+  ["¿Qué ciudad boliviana conserva un importante conjunto de misiones jesuíticas?", ["Potosí.", "Sucre.", "La Paz.", "San Ignacio de Velasco."], 3, 60],
+  // c61
+  ["¿Qué movimiento intelectual del siglo XVI influyó en la independencia americana?", ["La Ilustración.", "El Renacimiento.", "La Escolástica.", "El Romanticismo."], 0, 61],
+  // c62
+  ["¿Qué rebelión indígena se considera antecedente de la independencia de Bolivia?", ["Rebelión de Tomás Katari.", "Rebelión de Túpac Katari.", "Rebelión de Túpac Amaru II.", "Rebelión de los Moxeños."], 1, 62],
+  // c63
+  ["¿Qué revolución europea inspiró movimientos independentistas en América?", ["Revolución Industrial.", "Revolución Rusa.", "Revolución Francesa.", "Revolución China."], 2, 63],
+  // c64
+  ["¿Qué documento proclamó la independencia de las trece colonias?", ["Constitución de Cádiz.", "Acta de Independencia de Bolivia.", "Declaración de Derechos del Hombre.", "Declaración de Independencia de los Estados Unidos, 1776."], 3, 64],
+  // c65
+  ["¿Qué mujer boliviana fue coronela en la lucha independentista?", ["Juana Azurduy de Padilla.", "Bartolina Sisa.", "Micaela Bastidas.", "Gregoria Apaza."], 0, 65],
+  // c66
+  ["¿Qué ciudad fue escenario de la primera revolución libertaria en el actual territorio boliviano en 1809?", ["La Paz.", "La Plata.", "Cochabamba.", "Santa Cruz."], 1, 66],
+  // c67
+  ["¿Qué héroe argentino colaboró con la independencia del Alto Perú?", ["San Martín.", "Bolívar.", "Manuel Belgrano.", "Sucre."], 2, 67],
+  // c68
+  ["¿Qué batalla aseguró la independencia del actual territorio boliviano?", ["Guaqui.", "Ayacucho.", "Junín.", "Batalla de Tumusla."], 3, 68],
+  // c69
+  ["¿Quién fue el libertador venezolano que participó en la independencia de Bolivia?", ["Simón Bolívar.", "San Martín.", "Sucre.", "O'Higgins."], 0, 69],
+  // c70
+  ["¿Cuál fue la única republiqueta que llegó hasta la independencia de Bolivia?", ["Republiqueta de Tarija.", "Republiqueta de Ayopaya.", "Republiqueta de La Paz.", "Republiqueta de Santa Cruz."], 1, 70],
+  // c71
+  ["¿Qué fecha se celebra la independencia de Bolivia?", ["25 de mayo de 1809.", "16 de julio de 1809.", "6 de agosto de 1825.", "2 de agosto de 1825."], 2, 71],
+  // c72
+  ["¿Quién fue el primer presidente de Bolivia?", ["Sucre.", "Andrés de Santa Cruz.", "Pedro Antonio Olañeta.", "Simón Bolívar."], 3, 72],
+  // c73 (opciones B, C, D añadidas)
+  ["¿Qué batalla de 1811 fue una derrota patriota en la independencia boliviana?", ["Batalla de Guaqui.", "Batalla de Aroma.", "Batalla de Ayacucho.", "Batalla de Ingavi."], 0, 73],
+  // c74
+  ["¿Qué ciudad fue capital de Bolivia al fundarse la república?", ["La Paz.", "Chuquisaca, La Plata.", "Potosí.", "Oruro."], 1, 74],
+  // c75
+  ["¿Qué ejército ingresó al Alto Perú para apoyar la independencia y fue vencido en Guaqui?", ["Ejército de los Andes.", "Ejército Libertador.", "Ejército del Norte, de las Provincias Unidas del Río de la Plata.", "Ejército del Sur."], 2, 75],
+  // c76
+  ["¿Qué militar boliviano fue presidente y participó en la Confederación Perú-Boliviana?", ["Sucre.", "Bolívar.", "Pando.", "Andrés de Santa Cruz."], 3, 76],
+  // c77
+  ["¿Qué corriente política predominó en los primeros años republicanos de Bolivia?", ["Centralismo conservador.", "Federalismo liberal.", "Socialismo.", "Anarquismo."], 0, 77],
+  // c78
+  ["¿Qué bandera usó Bolivia en sus primeros años de independencia?", ["Rojo-amarillo-verde.", "Tricolor verde-punzó-verde.", "Azul-blanco-rojo.", "Negro-rojo."], 1, 78],
+  // c79
+  ["¿Cómo se llamaba el último general español que combatió en el Alto Perú?", ["Rodil.", "La Serna.", "Pedro Antonio Olañeta.", "Valdés."], 2, 79],
+  // c80
+  ["¿Por quién fue redactada el acta de la independencia de Bolivia?", ["Casimiro Olañeta.", "Sucre.", "Bolívar.", "José Mariano Serrano."], 3, 80],
+  // c81
+  ["¿Con qué nombre fue fundado el departamento de Oruro el 1 de noviembre de 1606?", ["Villa de San Felipe de Austria.", "Oruro de los Andes.", "San Miguel.", "Ciudad de La Plata."], 0, 81],
+  // c82
+  ["¿Qué personaje reemplazó a Sucre tras su renuncia como presidente?", ["Andrés de Santa Cruz.", "José María Pérez de Urdininea.", "Ballivián.", "Belzu."], 1, 82],
+  // c83
+  ["¿Qué país tuvo disputas fronterizas tempranas con Bolivia en el siglo XIX?", ["Brasil.", "Argentina.", "Chile.", "Perú."], 2, 83],
+  // c84
+  ["¿Qué himno se declaró oficialmente nacional en 1851?", ["Himno a La Paz.", "Himno de los Andes.", "Marcha Real.", "Himno Nacional de Bolivia."], 3, 84],
+  // c85
+  ["¿Qué presidente boliviano ordenó la construcción del primer ferrocarril en el siglo XIX?", ["Aniceto Arce.", "Pando.", "Montes.", "Melgarejo."], 0, 85],
+  // c86
+  ["Durante la Guerra del Pacífico se desarrolló la batalla de Pisagua. ¿En qué fecha?", ["14 de febrero de 1879.", "2 de noviembre de 1879.", "5 de abril de 1879.", "26 de mayo de 1880."], 1, 86],
+  // c87
+  ["¿Qué guerra libró Bolivia contra Chile entre 1879 y 1884?", ["Guerra del Chaco.", "Guerra del Acre.", "Guerra del Pacífico.", "Guerra Federal."], 2, 87],
+  // c88 (opciones B, C, D añadidas)
+  ["¿Qué territorio perdió Bolivia en la Guerra del Pacífico?", ["Acre.", "El Chaco Boreal.", "La región de Cobija.", "El Litoral boliviano, Antofagasta."], 3, 88],
+  // c89
+  ["¿Qué presidente boliviano fue derrocado al inicio de la Guerra del Pacífico?", ["Hilarión Daza.", "Pando.", "Ballivián.", "Melgarejo."], 0, 89],
+  // c90
+  ["¿En qué fecha se desarrolló la invasión chilena al puerto de Antofagasta?", ["2 de noviembre de 1879.", "14 de febrero de 1879.", "6 de agosto de 1879.", "20 de octubre de 1883."], 1, 90],
+  // c91
+  ["¿Qué conflicto interno dividió a liberales y conservadores en Bolivia?", ["Guerra del Chaco.", "Guerra del Acre.", "Guerra Federal, 1898-1899.", "Guerra del Pacífico."], 2, 91],
+  // c92
+  ["¿Qué ciudad se convirtió en sede de gobierno tras la Guerra Federal?", ["Sucre.", "Potosí.", "Cochabamba.", "La Paz."], 3, 92],
+  // c93
+  ["¿Qué presidente impulsó la modernización y el ferrocarril en Bolivia?", ["Hernando Siles Reyes.", "Arce.", "Montes.", "Pando."], 0, 93],
+  // c94
+  ["¿Qué país disputó con Bolivia la región del Acre?", ["Perú.", "Brasil.", "Argentina.", "Paraguay."], 1, 94],
+  // c95
+  ["¿Qué recurso motivó la Guerra del Acre?", ["Plata.", "Estaño.", "El caucho o árbol de la goma.", "Petróleo."], 2, 95],
+  // c96 (opciones B, C, D añadidas)
+  ["¿Qué tratado cedió el Acre a Brasil?", ["Tratado de Ancón.", "Tratado de Versalles.", "Tratado de Paucarpata.", "Tratado de Petrópolis."], 3, 96],
+  // c97
+  ["¿Qué presidente boliviano fue conocido como el \"tirano\" y gobernó de forma autoritaria?", ["Mariano Melgarejo.", "Belzu.", "Ballivián.", "Daza."], 0, 97],
+  // c98
+  ["¿Qué guerra enfrentó a Bolivia y Perú contra la Confederación Argentina y Chile?", ["Guerra del Pacífico.", "Guerra de la Confederación Perú-Boliviana, 1836-1839.", "Guerra del Chaco.", "Guerra del Acre."], 1, 98],
+  // c99
+  ["La Guerra del Acre tuvo su inicio con la presión brasileña para que los bolivianos abandonaran un puerto estratégico. ¿Cuál era su nombre?", ["Puerto Suárez.", "Puerto Villarroel.", "Puerto Alonso, también llamado Puerto Acre.", "Puerto Busch."], 2, 99],
+  // c100
+  ["¿Qué industria minera creció en Bolivia tras el declive de la plata?", ["Minería de plata.", "Minería de oro.", "Caucho.", "Minería del estaño."], 3, 100],
+  // c101
+  ["¿Quién fue Simón I. Patiño?", ["Empresario boliviano y \"rey del estaño\".", "Mauricio Hochschild.", "Carlos Aramayo.", "Víctor Paz Estenssoro."], 0, 101],
+  // c102
+  ["¿Qué presidente promovió leyes liberales y la educación laica?", ["José Manuel Pando.", "Ismael Montes.", "Hernando Siles Reyes.", "Aniceto Arce."], 1, 102],
+  // c103 (opciones C, D añadidas)
+  ["¿En qué año se fundó la Universidad Mayor de San Andrés (UMSA)?", ["1825.", "1826.", "1830.", "1927."], 2, 103],
+  // c104
+  ["¿Qué tratado estableció límites entre Bolivia y Argentina en 1889?", ["Tratado de Petrópolis.", "Tratado de Ancón.", "Tratado de Versalles.", "Tratado de límites Bolivia-Argentina, 1889."], 3, 104],
+  // c105
+  ["¿Qué ciudad fue capital de la Confederación Perú-Boliviana?", ["Tacna.", "La Paz.", "Sucre.", "Lima."], 0, 105],
+  // c106
+  ["¿Qué presidente boliviano fue asesinado en 1946?", ["Víctor Paz Estenssoro.", "Gualberto Villarroel.", "Germán Busch.", "Hernando Siles Zuazo."], 1, 106],
+  // c107
+  ["¿Qué país vendió armas a Bolivia durante la Guerra del Acre?", ["Chile.", "Brasil.", "Alemania, Inglaterra y Estados Unidos.", "Perú."], 2, 107],
+  // c108
+  ["¿Qué presidente boliviano se enfrentó a Chile en la Guerra del Pacífico?", ["Pando.", "Montes.", "Arce.", "Hilarión Daza."], 3, 108],
+  // c109
+  ["¿Qué ciudad portuaria perdió Bolivia en 1884?", ["Antofagasta.", "Cobija.", "Arica.", "Iquique."], 0, 109],
+  // c110
+  ["¿Qué líder liberal fue presidente tras la Guerra Federal?", ["Montes.", "José Manuel Pando.", "Arce.", "Siles."], 1, 110],
+  // c111 (opciones C, D añadidas)
+  ["¿Qué presidente boliviano firmó el Tratado de Petrópolis?", ["Aniceto Arce.", "Montes.", "José Manuel Pando.", "Mariano Melgarejo."], 2, 111],
+  // c112
+  ["¿Quién se encontraba al mando de las tropas bolivianas en la batalla de Tambillos?", ["Juana Azurduy.", "Esteban Arze.", "Túpac Katari.", "Manuel Ascencio Padilla."], 3, 112],
+  // c113
+  ["¿En qué años se desarrolló la Primera Guerra Mundial?", ["1914-1918.", "1939-1945.", "1918-1920.", "1905-1910."], 0, 113],
+  // c114
+  ["¿Qué país fue aliado de Bolivia en la Guerra del Chaco?", ["Argentina.", "Bolivia no tuvo un aliado formal; combatió contra Paraguay.", "Perú.", "Chile."], 1, 114],
+  // c115
+  ["¿Cómo se denominó la laguna descubierta por el My. Moscoso al inicio de la Guerra del Chaco?", ["Laguna Colorada.", "Laguna Verde.", "Laguna Pitiantuta o Chuquisaca.", "Laguna Blanca."], 2, 115],
+  // c116
+  ["¿Cuál fue la causa principal de la Guerra del Chaco?", ["El acceso al mar.", "El caucho.", "El salitre.", "La disputa por el Chaco Boreal y sus posibles recursos petroleros."], 3, 116],
+  // c117
+  ["¿En qué año terminó la Guerra del Chaco?", ["1935.", "1932.", "1938.", "1940."], 0, 117],
+  // c118
+  ["¿Qué presidente boliviano nacionalizó las minas en 1952?", ["Hernando Siles Zuazo.", "Víctor Paz Estenssoro.", "Gualberto Villarroel.", "René Barrientos."], 1, 118],
+  // c119 (opciones C, D añadidas)
+  ["¿Qué partido político impulsó la Revolución Nacional?", ["Falange Socialista Boliviana.", "MIR.", "Movimiento Nacionalista Revolucionario (MNR).", "Partido Obrero Revolucionario (POR)."], 2, 119],
+  // c120
+  ["¿Qué medida social importante se implementó tras 1952?", ["Ley de Participación Popular.", "Capitalización.", "Autonomías departamentales.", "Reforma Agraria."], 3, 120],
+  // c121
+  ["¿Qué país invadió Polonia en 1939 iniciando la Segunda Guerra Mundial?", ["Alemania.", "URSS.", "Italia.", "Japón."], 0, 121],
+  // c122
+  ["¿Qué presidente boliviano decretó el voto universal?", ["Hernando Siles Zuazo.", "Víctor Paz Estenssoro.", "René Barrientos.", "Gualberto Villarroel."], 1, 122],
+  // c123
+  ["¿Qué conflicto internacional enfrentó a EE. UU. y la URSS sin combate directo?", ["Segunda Guerra Mundial.", "Primera Guerra Mundial.", "Guerra Fría.", "Guerra del Golfo."], 2, 123],
+  // c124
+  ["¿Qué guerrillero argentino murió en Bolivia en 1967?", ["Fidel Castro.", "Camilo Cienfuegos.", "Carlos Marighella.", "Ernesto \"Che\" Guevara."], 3, 124],
+  // c125
+  ["¿En qué año asumió Evo Morales por primera vez la presidencia?", ["2006.", "2005.", "2007.", "2010."], 0, 125],
+  // c126
+  ["¿Qué guerra marcó el inicio del uso de armas nucleares?", ["Primera Guerra Mundial.", "Segunda Guerra Mundial.", "Guerra Fría.", "Guerra del Golfo."], 1, 126],
+  // c127 (opciones B, C, D añadidas)
+  ["¿En qué fecha y año se suscribió el Tratado de Versalles?", ["1918.", "28 de junio de 1918.", "28 de junio de 1919.", "11 de noviembre de 1918."], 2, 127],
+  // c128
+  ["¿En qué año se fundó la COB?", ["6 de agosto de 1825.", "1952.", "1 de mayo de 1952.", "17 de abril de 1952."], 3, 128],
+  // c129
+  ["¿Qué presidente boliviano impulsó la capitalización de empresas estatales?", ["Gonzalo Sánchez de Lozada.", "Víctor Paz Estenssoro.", "Hugo Banzer.", "Evo Morales."], 0, 129],
+  // c130
+  ["¿En qué año Bolivia fue declarada Estado Plurinacional?", ["2006.", "2009.", "2010.", "2008."], 1, 130],
+  // c131
+  ["¿Qué acción militar japonesa provocó el ingreso de EE. UU. en la Segunda Guerra Mundial?", ["Desembarco de Normandía.", "Hiroshima.", "Ataque a Pearl Harbor, 7 de diciembre de 1941.", "Tratado de Versalles."], 2, 131],
+  // c132
+  ["¿Qué empresa recibió concesiones para la explotación del caucho por parte del gobierno boliviano?", ["Bolivian Rubber Company.", "Anglo-Bolivian.", "Casa Suárez.", "Bolivian Syndicate."], 3, 132],
+  // c133
+  ["¿En qué año se aprobó la última Constitución Política del Estado en Bolivia?", ["2009.", "1994.", "2004.", "2012."], 0, 133],
+  // c134
+  ["¿En qué fecha y año las tropas aliadas desembarcaron en las playas de Normandía?", ["7 de diciembre de 1941.", "6 de junio de 1944.", "8 de mayo de 1945.", "2 de agosto de 1990."], 1, 134],
+  // c135
+  ["¿En qué fecha inició la Guerra del Golfo Pérsico?", ["1991.", "1989.", "2 de agosto de 1990.", "2003."], 2, 135],
+  // c136
+  ["¿Qué conflicto internacional llevó a Bolivia a demandar a Chile en La Haya?", ["El Chaco.", "El Acre.", "El caucho.", "La disputa por el acceso soberano de Bolivia al océano Pacífico tras la Guerra del Pacífico."], 3, 136],
+  // c137
+  ["¿En qué año presentó Bolivia la demanda marítima en La Haya?", ["24 de abril de 2013.", "2010.", "2015.", "2018."], 0, 137],
+  // c138
+  ["¿Qué organismo internacional resolvió la demanda marítima boliviana contra Chile?", ["Corte Interamericana de Derechos Humanos.", "Corte Internacional de Justicia (CIJ).", "ONU.", "OEA."], 1, 138],
+  // c139
+  ["¿Quién dijo: \"No soy enemigo de los ricos, pero soy más amigo de los pobres\"?", ["Víctor Paz Estenssoro.", "Carlos Mesa.", "Evo Morales.", "Gonzalo Sánchez de Lozada."], 2, 139],
+  // c140
+  ["¿Qué pandemia afectó al mundo en 2020?", ["Gripe española.", "Ébola.", "H1N1.", "COVID-19."], 3, 140],
+  // c141
+  ["¿Qué presidente boliviano fue médico de profesión?", ["José Manuel Pando.", "Hernando Siles Zuazo.", "Víctor Paz Estenssoro.", "Hugo Banzer."], 0, 141],
+  // c142
+  ["¿En qué año Bolivia ingresó como miembro pleno del Mercosur?", ["2006.", "2012, con protocolo de adhesión; membresía plena en 2024.", "2015.", "2019."], 1, 142],
+  // c143
+  ["¿Qué significa TIPNIS?", ["Tierra Indígena y Parque Nacional Isiboro Sécur.", "Territorio Indígena y Parque Natural Ichilo Sécur.", "Territorio Indígena y Parque Nacional Isiboro Sécur.", "Tierra Indígena y Parque Nacional Ichilo Sécur."], 2, 143],
+  // c144
+  ["¿Qué evento deportivo internacional organizó Bolivia en 1977?", ["Juegos Olímpicos.", "Juegos Panamericanos.", "Juegos Sudamericanos.", "VIII Juegos Deportivos Bolivarianos, La Paz 1977."], 3, 144],
+  // c145
+  ["¿Qué nombre le pusieron a la primera bomba atómica usada en guerra?", ["Little Boy.", "Trinity.", "Fat Man.", "Enola Gay."], 0, 145],
+  // c146
+  ["¿En qué fecha y año se inició la construcción del Muro de Berlín?", ["1960.", "13 de agosto de 1961.", "1962.", "1989."], 1, 146],
+  // c147
+  ["¿Qué institución educativa boliviana fue fundada en 1624?", ["UMSA.", "UMSS.", "Universidad San Francisco Xavier de Chuquisaca.", "UAGRM."], 2, 147],
+  // c148
+  ["¿Qué presidente boliviano impulsó el \"gasoducto al Brasil\"?", ["Víctor Paz Estenssoro.", "Hugo Banzer.", "Evo Morales.", "Gonzalo Sánchez de Lozada."], 3, 148],
+  // c149 (opciones C, D añadidas)
+  ["Concluida la Segunda Guerra Mundial, el mundo se dividió en dos bloques. ¿Cuáles fueron?", ["Bloque capitalista (EE. UU.) y bloque comunista (URSS).", "Bloque del Eje y Aliados.", "Bloque del Atlántico y del Pacífico.", "Bloque Norte y Sur."], 0, 149],
+  // c150
+  ["¿Qué evento natural afectó gravemente a Beni en 2014?", ["Terremoto.", "Inundaciones en el Beni.", "Sequía.", "Incendios forestales."], 1, 150]
+];
+
+/* Helpers de consola */
+function findBySeq(seq) {
+  var i = seq - 1;
+  if (i < 0 || i >= questions.length) return null;
+  var q = questions[i];
+  return { seq: seq, doc: q[3] !== undefined ? q[3] : null, texto: q[0], opciones: q[1], correcta: ['A','B','C','D'][q[2]] + ' — ' + q[1][q[2]] };
+}
+function findByDoc(doc) {
+  for (var i = 0; i < questions.length; i++) {
+    if (questions[i][3] === doc) return findBySeq(i + 1);
+  }
+  return null;
+}
+window.findBySeq = findBySeq;
+window.findByDoc = findByDoc;
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+/* Claves v4 — banco nuevo */
+var KEY_HISTORY = 'histExam_v4_history';
+var KEY_POOL = 'histExam_v4_pool';
+var KEY_SEEN = 'histExam_v4_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function makeRange(n) { var r = []; for (var i = 0; i < n; i++) r.push(i); return r; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) { if (seenEver[k]) seenArr.push(parseInt(k, 10)); }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) { console.warn('saveState error:', e); }
+}
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) { examHistory = JSON.parse(h); if (!Array.isArray(examHistory)) examHistory = []; }
+    attemptNumber = examHistory.length;
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) { pool = JSON.parse(p); if (!Array.isArray(pool)) pool = []; }
+    else { pool = shuffle(makeRange(questions.length)); }
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = []; seenEver = {}; attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) if (!inExam[i]) remaining.push(i);
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); }
+  }, 1000);
+}
+
+/* ============================================================
+   INFO
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) if (seenEver[k]) seen++;
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+    var seq = picked[j] + 1;
+    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;
+
+    var normales = [], finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]); else normales.push(q[1][o]);
+    }
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      seq: seq,
+      doc: doc,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
+    });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = (qd.doc !== null && qd.doc !== qd.seq)
+      ? '  (c' + qd.seq + ' · doc #' + qd.doc + ')'
+      : '  (#' + qd.seq + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
+  startTimer();
+}
+
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  var correct = 0;
+  var html = '';
+  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    var tag = (q.doc !== null && q.doc !== q.seq)
+      ? '(c' + q.seq + ' · doc #' + q.doc + ')'
+      : '(#' + q.seq + ')';
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">' + tag + '</span><br>';
+    if (isCorrect) {
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    } else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct, total: total, pct: pct, auto: !!auto
+  });
+  saveState();
+  renderInfo();
+  renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td><td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = []; attemptNumber = 0; seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    var tag = 'c' + (i + 1);
+    if (!Array.isArray(q) || (q.length !== 3 && q.length !== 4)) {
+      errores.push(tag + ': formato inválido'); continue;
+    }
+    if (!Array.isArray(q[1]) || q[1].length < 2) {
+      errores.push(tag + ': sin opciones'); continue;
+    }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push(tag + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+    if (q.length === 4 && (typeof q[3] !== 'number' || q[3] <= 0)) {
+      errores.push(tag + ': número original inválido (' + q[3] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault(); e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) { hayRespuestas = true; break; }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) return;
+  }
+  renderExam();
+});
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
+renderExam();
+</script>
+</body>
+</html>
