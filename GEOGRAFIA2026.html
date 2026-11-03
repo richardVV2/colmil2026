@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Geografía</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Geografía 2026</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;
+var QUESTIONS_PER_EXAM = 30;
+
+/* ============================================================
+   BANCO — Geografía 2026 (200 preguntas)
+   Formato: [texto, [opciones], índice_correcto, numeroOriginal]
+   índice: 0=A, 1=B, 2=C, 3=D
+   ============================================================ */
+var questions = [
+  ["¿Cuál es la capital constitucional de Bolivia?", ["La Paz.", "Sucre.", "Potosí.", "Cochabamba."], 1, 1],
+  ["¿En qué ciudad se encuentra la sede de gobierno de Bolivia?", ["Sucre.", "Santa Cruz.", "La Paz.", "Oruro."], 2, 2],
+  ["¿Cuál es la situación geográfica de Bolivia?", ["Zona central de América del Sur.", "Zona oriental de América del Sur.", "América del Norte.", "Europa."], 0, 3],
+  ["¿Cuál es la extensión territorial de Bolivia?", ["1.098.851 km².", "1.098.185 km².", "1.089.581 km².", "1.098.581 km²."], 3, 4],
+  ["¿Con qué países limita Bolivia?", ["Brasil, Argentina, Perú, Paraguay y Chile.", "Brasil, Venezuela, Perú y Chile.", "Argentina, Paraguay, Ecuador y Chile.", "Perú, Brasil, Colombia y Paraguay."], 0, 5],
+  ["Según el documento, ¿cuál es la población de Bolivia?", ["8.274.325 habitantes.", "7.600.000 habitantes.", "9.274.325 habitantes.", "8.724.325 habitantes."], 0, 6],
+  ["¿Cuáles son los idiomas oficiales de Bolivia?", ["Español e inglés.", "Quechua y aymara solamente.", "Español, quechua, aymara y tupiguaraní.", "Español y portugués."], 2, 7],
+  ["¿Cuál es la religión que reconoce y sostiene el Estado boliviano?", ["Evangélica.", "Católica, con libertad de culto.", "Adventista.", "Ninguna."], 1, 8],
+  ["¿Cuál es la moneda oficial de Bolivia?", ["Peso boliviano.", "Boliviano (Bs).", "Dólar.", "Real."], 1, 9],
+  ["¿Cuáles son los tres Poderes del Estado?", ["Ejecutivo, Militar y Judicial.", "Legislativo, Económico y Judicial.", "Ejecutivo, Judicial y Legislativo.", "Ejecutivo, Electoral y Legislativo."], 2, 10],
+  ["¿Cómo está constituido el Poder Ejecutivo?", ["Presidente y vicepresidente elegidos por 4 años.", "Presidente, vicepresidente y 12 ministerios.", "Presidente y vicepresidente elegidos por 5 años, con 16 ministerios.", "Presidente, vicepresidente y 20 ministerios."], 2, 11],
+  ["¿Cómo está constituido el Poder Judicial?", ["Corte Suprema, Tribunal Constitucional, Consejo de la Judicatura, Cortes Superiores y Tribunales Ordinarios.", "Solo Corte Suprema y Tribunal Constitucional.", "Congreso, Senadores y Diputados.", "Presidente, vicepresidente y ministros."], 0, 12],
+  ["¿Cómo está constituido el Poder Legislativo?", ["Cámara de Senadores y Cámara de Diputados.", "Honorable Congreso Nacional, con Cámara de Senadores y Cámara de Diputados.", "Corte Suprema y Tribunal Constitucional.", "Presidente y vicepresidente."], 1, 13],
+  ["¿Cuántos senadores y diputados conforman el Poder Legislativo?", ["27 senadores y 130 diputados.", "130 senadores y 27 diputados.", "27 senadores y 130 diputados.", "68 senadores y 62 diputados."], 2, 14],
+  ["¿Cuál es la división política de Bolivia?", ["9 departamentos, 112 provincias, 327 municipios y 1.384 cantones.", "10 departamentos, 112 provincias y 327 municipios.", "9 departamentos, 121 provincias y 327 municipios.", "9 departamentos, 112 provincias y 372 municipios."], 0, 15],
+  ["¿En qué continente se encuentra Bolivia?", ["América del Sur.", "América del Este.", "América del Norte.", "Europa."], 0, 16],
+  ["¿Cuál es la extensión territorial de la frontera con Argentina?", ["763 km².", "737 km².", "773 km².", "741 km²."], 2, 17],
+  ["¿Cuál es la extensión territorial de la frontera con Brasil?", ["3433 km².", "3323 km².", "3243 km².", "3423 km²."], 3, 18],
+  ["¿Cuál es la extensión territorial de la frontera con Chile?", ["861 km².", "862 km².", "816 km².", "168 km²."], 0, 19],
+  ["¿Cuál es la extensión territorial de la frontera con Paraguay?", ["641 km².", "741 km².", "740 km².", "714 km²."], 1, 20],
+  ["¿Cuál es la extensión territorial de la frontera con Perú?", ["1037 km².", "1147 km².", "1047 km².", "1074 km²."], 2, 21],
+  ["¿Cuál es la extensión territorial de los límites con los diferentes países?", ["1.098.581 km².", "1.898.581 km².", "1.088.581 km².", "1.098.851 km²."], 0, 22],
+  ["¿Cuáles son los puntos extremos de Bolivia?", ["Latitud Norte y Longitud Occidental.", "Latitud Sur y Longitud Occidental.", "Latitud Sur y Longitud Oriental.", "Latitud Norte y Longitud Oriental."], 1, 23],
+  ["¿Cuál es la frontera natural que separa Bolivia y Chile?", ["Cordillera de las Américas.", "Cordillera de los Alpes.", "Cordillera de los Andes.", "Río Pilcomayo."], 2, 24],
+  ["¿Dónde se encuentra el Cerro nevado del Illimani?", ["Departamento de Potosí.", "Departamento de Oruro.", "Departamento de La Paz.", "Departamento de Cochabamba."], 2, 25],
+  ["¿A cuántos metros sobre el nivel del mar se encuentra el Lago Titicaca?", ["3810 msnm.", "3910 msnm.", "3818 msnm.", "3801 msnm."], 0, 26],
+  ["¿Qué departamentos de Bolivia pertenecen a la Cuenca Amazónica?", ["Beni, Oruro y Santa Cruz.", "Beni, Pando y Santa Cruz.", "Tarija, Pando y Potosí.", "La Paz, Oruro y Potosí."], 1, 27],
+  ["¿Qué departamento pertenece a la Cuenca del Plata?", ["Cochabamba.", "Santa Cruz.", "Tarija.", "Oruro."], 2, 28],
+  ["¿Cuáles son las Regiones de Bolivia?", ["Región del Plata, Amazónica y de los Llanos.", "Región Andina, Región Subandina y de los Llanos.", "Región Andina, Central y Oriental.", "Región Altiplano, Valle y Selva."], 1, 29],
+  ["¿Cómo está comprendida la Región Andina?", ["Valles y Yungas.", "Altiplano y Cordillera de los Andes.", "Llanos y Chaco.", "Amazonía y Plata."], 1, 30],
+  ["¿En qué región se encuentra la cima más alta del país?", ["Región Andina.", "Región Subandina.", "Región de los Llanos.", "Región del Plata."], 0, 31],
+  ["¿Cómo está comprendida la Región Subandina?", ["Los Llanos y Los Yungas.", "Los Valles y Los Yungas.", "Los Valles y Los Altiplanos.", "Amazonía y Chaco."], 1, 32],
+  ["¿Cómo está comprendida la Región de los Llanos?", ["Amazónica, Andina y del Gran Chaco.", "Amazónica, platense y del Gran Valle.", "Amazónica, platense y del Gran Chaco.", "Andina, Subandina y del Plata."], 2, 33],
+  ["¿Cuál es el nevado más elevado del país?", ["Sajama.", "Illimani.", "Licancábur.", "Chacaltaya."], 0, 34],
+  ["¿A qué cordillera pertenece el nevado Sajama?", ["Cordillera Oriental.", "Cordillera Occidental.", "Cordillera Central.", "Cordillera Real."], 1, 35],
+  ["¿Cuál es el volcán más activo a nivel mundial que se encuentra en Bolivia?", ["Volcán Zapaleri.", "Sajama.", "Illampu.", "Licancábur."], 3, 36],
+  ["¿Cuáles son las lagunas más conocidas de la Región Occidental?", ["Laguna Alalay y Laguna Verde.", "Laguna Colorada y Laguna Poopó.", "Laguna Colorada y Laguna Verde.", "Laguna Verde y Laguna Uru Uru."], 2, 37],
+  ["¿Cómo se divide la Cordillera Central?", ["Septentrional o Real, Central y Meridional.", "Septentrional o Real, Norte y Meridional.", "Septentrional o Real, Central y Oriental.", "Occidental, Oriental y Meridional."], 0, 38],
+  ["¿Dónde se encuentra la cadena montañosa más significativa de Bolivia?", ["Cordillera de Oruro.", "Cordillera de La Paz.", "Cordillera de Potosí.", "Cordillera de Tarija."], 1, 39],
+  ["¿Cómo está conformada la cadena montañosa más significativa de Bolivia?", ["Illimani, Sajama, Ancohuma, Mururata y Huayna Potosí.", "Illimani, Illampu, Ancohuma, Mururata y Cerro Rico de Potosí.", "Illimani, Illampu, Ancohuma, Mururata y Huayna Potosí.", "Illimani, Amboró, Condoriri y Tatasabaya."], 2, 40],
+  ["¿Dónde se encuentra el observatorio meteorológico más alto de Sudamérica?", ["Nevado de Chacaltaya.", "Nevado de Sajama.", "Nevado de Illimani.", "Nevado de Illampu."], 0, 41],
+  ["¿Cuáles son las tres cordilleras de Bolivia?", ["Cordillera de los Andes, Oriental y Central.", "Cordillera Occidental, Oriental y Central.", "Cordillera Occidental, Real y Central.", "Cordillera Occidental, Oriental y de los Andes."], 1, 42],
+  ["¿Cuál es el recurso mineral más importante del cerro Zapaleri?", ["Yacimientos de estaño.", "Yacimientos de petróleo.", "Yacimientos de litio.", "Yacimientos de plata."], 0, 43],
+  ["¿Cuál es la forma original del planeta Tierra?", ["Esférica.", "Redonda.", "Geodésica.", "Ovalada."], 2, 44],
+  ["¿En cuántas ramas se divide la geografía?", ["Geografía física y geografía militar.", "Geografía ambiental y geografía humana.", "Geografía física y geografía humana.", "Geografía general y geografía regional."], 2, 45],
+  ["¿Qué formula la Geografía General?", ["Hipótesis y teorías.", "Leyes y temas.", "Leyes y teorías.", "Solamente hipótesis."], 2, 46],
+  ["¿Qué es la Geografía física?", ["Ciencia de la Tierra que estudia el medio físico.", "Ciencia de las montañas que estudia el medio ambiente.", "Ciencia de las leyes del medio ambiente.", "Ciencia que estudia solo el clima."], 0, 47],
+  ["¿Qué es la climatología?", ["Rama de la geografía física que estudia el clima.", "Rama que estudia los fenómenos naturales.", "Rama que estudia el medio ambiente.", "Rama que estudia las montañas."], 0, 48],
+  ["¿Qué estudia la meteorología?", ["El espacio aéreo desde el punto de vista ambiental.", "El tiempo atmosférico desde el punto de vista físico.", "El clima desde el punto de vista geográfico.", "Las aguas subterráneas."], 1, 49],
+  ["¿Qué rama estudia de manera descriptiva y explicativa el relieve de la Tierra y de otros planetas?", ["Geopolítica.", "Geomorfología.", "Geodesia.", "Hidrografía."], 1, 50],
+  ["¿Qué estudia la hidrología?", ["La distribución aérea y espacial de los minerales.", "La distribución terrestre y temporal del espacio.", "La distribución espacial y temporal, y las propiedades del agua.", "Las masas vegetales de la Tierra."], 2, 51],
+  ["¿Qué estudia la hidrografía?", ["Todas las masas vegetales de la Tierra.", "Todas las masas de agua de la Tierra.", "Solamente los ríos.", "Solamente los lagos."], 1, 52],
+  ["¿Qué es la Geografía humana?", ["Ciencia social centrada en el estudio de las sociedades y sus territorios.", "Ciencia social centrada en los humanos y sus territorios.", "Ciencia social centrada en las cordilleras y sus territorios.", "Ciencia natural que estudia el relieve."], 0, 53],
+  ["¿Qué estudia la Geografía rural?", ["El mundo continental y los espacios rurales.", "El mundo rural y los espacios rurales.", "Las ciudades y regiones urbanas.", "Los sistemas de transporte."], 1, 54],
+  ["¿Cuál es la extensión territorial de Sucre?", ["51.245 km².", "55.124 km².", "15.524 km².", "51.524 km²."], 3, 55],
+  ["¿Cuáles son las dos zonas que forman parte de la Ciudad de Sucre?", ["Zona Andina y del Chaco.", "Zona Andina y de los Llanos.", "Zona Subandina y del Plata.", "Zona Amazónica y Andina."], 1, 56],
+  ["¿Cuáles son las actividades económicas más importantes de Sucre?", ["Agricultura, ganadería, agroindustria, minería e hidrocarburos.", "Solo minería y petróleo.", "Pesca y turismo.", "Industria textil y comercio."], 0, 57],
+  ["¿Cuándo se fundó la ciudad de Sucre, según el documento?", ["23 de enero de 1825.", "23 de enero de 1826.", "6 de agosto de 1825.", "24 de septiembre de 1938."], 1, 58],
+  ["¿Cuáles son tres serranías de la ciudad de Sucre?", ["Mandinga, Tarabuco y Aguaragüe.", "Illimani, Sajama y Tunari.", "Chiquitos, San Matías y Cobija.", "Pilcomayo, Bermejo y Grande."], 0, 59],
+  ["¿Cuál es la extensión del departamento de La Paz?", ["133.585 km².", "138.395 km².", "183.985 km².", "133.985 km²."], 3, 60],
+  ["¿Cuál es la capital del departamento de La Paz?", ["La Paz.", "Sucre.", "Oruro.", "Cochabamba."], 0, 61],
+  ["¿A qué cuencas pertenece el departamento de La Paz?", ["Cuenca Amazónica y Cuenca Altiplánica.", "Cuenca del Plata y Amazónica.", "Cuenca Altiplánica y del Plata.", "Cuenca del Plata solamente."], 0, 62],
+  ["¿Cuál es la montaña más alta del departamento de La Paz?", ["Sajama.", "Nevado de Illimani.", "Huayna Potosí.", "Licancábur."], 1, 63],
+  ["¿Cuál es el lago más extenso de La Paz?", ["Lago Poopó.", "Lago Titicaca.", "Lago Misisipi.", "Laguna Colorada."], 1, 64],
+  ["¿Cuántas provincias tiene el departamento de La Paz?", ["18 provincias.", "20 provincias.", "25 provincias.", "16 provincias."], 1, 65],
+  ["¿Cuáles son las actividades más importantes de La Paz?", ["Agricultura, ganadería, industria, agroindustria, minería, hidrocarburos y pesca.", "Solo minería y comercio.", "Pesca y turismo.", "Solo agricultura y ganadería."], 0, 66],
+  ["¿En qué fecha fue la creación de La Paz, según el documento?", ["23 de enero de 1825.", "23 de enero de 1826.", "6 de agosto de 1825.", "24 de septiembre de 1938."], 1, 67],
+  ["¿Dónde se encuentra el departamento de Tarija?", ["Al Sur de Bolivia.", "Al Noreste de Bolivia.", "Al Sureste de Bolivia.", "Al Oeste de Bolivia."], 0, 68],
+  ["¿Con qué departamentos limita Tarija?", ["Al Norte Pando y Brasil; al Este Brasil y Santa Cruz.", "Al Norte Santa Cruz; al Este Pando; al Oeste Brasil.", "Al Norte Chuquisaca; al Este Paraguay; al Oeste Potosí y Chuquisaca.", "Al Norte Oruro; al Este Potosí; al Oeste Chile."], 2, 69],
+  ["¿Cuál es la capital de Tarija?", ["Tarija.", "Villazón.", "Trinidad.", "Cobija."], 0, 70],
+  ["¿A qué cuenca pertenece el territorio tarijeño?", ["Cuenca Amazónica.", "Cuenca Altiplánica.", "Cuenca del Plata.", "Cuenca del Pacífico."], 2, 71],
+  ["¿Cuál es la extensión territorial del departamento de Tarija?", ["32.765 km².", "37.623 km².", "37.356 km².", "73.623 km²."], 1, 72],
+  ["¿Cuáles son las actividades económicas del departamento de Tarija?", ["Explotación de hidrocarburos, agricultura, ganadería, pesca e industria.", "Solo minería.", "Solo agricultura.", "Pesca y turismo."], 0, 73],
+  ["¿Con cuántas provincias cuenta el departamento de Tarija?", ["Siete provincias.", "Seis provincias.", "Ocho provincias.", "Cinco provincias."], 1, 74],
+  ["¿Cuáles son los ríos más importantes de Tarija?", ["Pilcomayo y Bermejo.", "Beni y Madre de Dios.", "Itenez y Parapetí.", "Madera y Mamoré."], 0, 75],
+  ["¿Dónde se encuentra el departamento de Oruro?", ["Al Oeste de Bolivia.", "Al Noreste de Bolivia.", "Al Sureste de Bolivia.", "Al Este de Bolivia."], 0, 76],
+  ["¿Cuál es la extensión territorial del departamento de Oruro?", ["358.218 km².", "534.543 km².", "53.588 km².", "35.888 km²."], 2, 77],
+  ["¿Cuáles son las actividades económicas más importantes de Oruro?", ["Minería, agricultura, ganadería y, en menor medida, industria.", "Solo petróleo.", "Solo turismo.", "Pesca y comercio."], 0, 78],
+  ["¿Con cuántas provincias cuenta el departamento de Oruro?", ["16 provincias.", "15 provincias.", "14 provincias.", "20 provincias."], 0, 79],
+  ["¿Cuál es la extensión territorial de Santa Cruz?", ["374.542 km².", "370.621 km².", "375.445 km².", "307.621 km²."], 1, 80],
+  ["¿A qué cuencas pertenece el departamento de Santa Cruz?", ["Cuenca del Plata y Amazónica.", "Cuenca Altiplánica y del Plata.", "Cuenca Amazónica solamente.", "Cuenca del Pacífico."], 0, 81],
+  ["¿Cuál es la actividad económica del departamento de Santa Cruz?", ["Hidrocarburos, agroindustria, industria, ganadería, etc.", "Solo minería.", "Solo pesca.", "Solo turismo."], 0, 82],
+  ["¿Con cuántas provincias cuenta el departamento de Santa Cruz?", ["Quince provincias.", "Catorce provincias.", "Dieciséis provincias.", "Veinte provincias."], 0, 83],
+  ["¿Dónde se encuentra situado el departamento de Santa Cruz?", ["Al Oeste de Bolivia.", "Al Este de Bolivia.", "Al Sureste de Bolivia.", "Al Norte de Bolivia."], 1, 84],
+  ["¿Cuáles son los ríos más importantes de la cuenca amazónica de Santa Cruz?", ["Itenez, Parapetí y Río Grande.", "Madera, Beni y Madre de Dios.", "Pilcomayo y Bermejo.", "Piraí, San Miguel y Paraguay."], 0, 85],
+  ["¿Cuál es la superficie del departamento de Cochabamba?", ["55.631 km².", "65.531 km².", "56.531 km².", "55.361 km²."], 0, 86],
+  ["¿Por qué cordillera se encuentra definida la orografía cochabambina?", ["Cordillera de los Andes.", "Cordillera de Cochabamba.", "Cordillera Occidental.", "Cordillera de Potosí."], 1, 87],
+  ["¿Cuántas provincias comprende el departamento de Cochabamba?", ["15 provincias.", "16 provincias.", "14 provincias.", "20 provincias."], 1, 88],
+  ["¿Dónde se encuentra ubicado el departamento de Cochabamba?", ["Al Norte de Bolivia.", "Al Sur de Bolivia.", "En el centro de Bolivia.", "Al Este de Bolivia."], 2, 89],
+  ["¿Cuál es la extensión territorial del departamento de Pando?", ["63.454 km².", "63.555 km².", "63.827 km².", "68.327 km²."], 2, 90],
+  ["¿Cuál es el clima del departamento de Pando?", ["Húmedo y cálido.", "Frío y seco.", "Templado y seco.", "Frío y templado."], 0, 91],
+  ["¿Cuántas provincias comprende el departamento de Pando?", ["Cuatro provincias.", "Cinco provincias.", "Seis provincias.", "Siete provincias."], 1, 92],
+  ["¿Cuál es la capital de Pando?", ["Cobija.", "Trinidad.", "Pando.", "Puerto Rico."], 0, 93],
+  ["¿Cuándo fue la creación del departamento de Pando?", ["24 de septiembre de 1939.", "23 de enero de 1826.", "23 de marzo de 1826.", "24 de septiembre de 1938."], 3, 94],
+  ["¿Dónde se encuentra ubicado el departamento de Pando?", ["Al Norte de Bolivia.", "Al Noreste de Bolivia.", "Al Sur de Bolivia.", "Al Este de Bolivia."], 0, 95],
+  ["¿Cuál es la extensión territorial del departamento de Potosí?", ["118.128 km².", "181.218 km².", "118.281 km².", "118.218 km²."], 3, 96],
+  ["¿Cuál es la capital de Potosí?", ["Potosí.", "Ciudad de la Moneda.", "Ciudad de la Plata.", "Sucre."], 0, 97],
+  ["¿Cuándo fue la creación del departamento de Potosí?", ["23 de enero de 1826.", "23 de marzo de 1826.", "6 de agosto de 1825.", "24 de septiembre de 1938."], 1, 98],
+  ["¿El territorio potosino forma parte de qué tres cuencas hidrográficas?", ["Altiplánica, Amazónica y del Plata.", "Amazónica, del Plata y del Pacífico.", "Altiplánica, del Plata y del Pacífico.", "Amazónica, Altiplánica y del Chaco."], 0, 99],
+  ["¿Con qué departamentos limita Potosí?", ["Al Norte Cochabamba y La Paz; al Este Potosí; al Oeste Argentina.", "Al Norte Oruro y Cochabamba; al Este Chuquisaca y Tarija; al Oeste Chile; al Sur Argentina.", "Al Norte Santa Cruz; al Este Beni; al Oeste Chile.", "Al Norte Pando; al Este Brasil; al Oeste Perú."], 1, 100],
+  ["¿Dónde se encuentra ubicado el departamento de Beni?", ["Al Este de Bolivia.", "Al Noreste de Bolivia.", "Al Sur de Bolivia.", "Al Suroeste de Bolivia."], 1, 101],
+  ["¿Con qué departamentos limita el departamento de Beni?", ["Al Norte Pando y Brasil; al Este Brasil y Santa Cruz; al Oeste Pando y La Paz.", "Al Norte Santa Cruz; al Este Pando; al Oeste Brasil.", "Al Sur Oruro; al Este Potosí; al Oeste Chile.", "Al Norte Tarija; al Este Paraguay; al Oeste Argentina."], 0, 102],
+  ["¿Con cuántas provincias cuenta el departamento de Beni?", ["Siete provincias.", "Seis provincias.", "Ocho provincias.", "Nueve provincias."], 2, 103],
+  ["¿Cuál es la capital de Beni?", ["Beni.", "Pando.", "Trinidad.", "Cobija."], 2, 104],
+  ["¿Cuál es la extensión territorial de Beni?", ["127.654 km².", "153.487 km².", "213.564 km².", "213.654 km²."], 2, 105],
+  ["¿Cómo es el clima en el departamento del Beni?", ["Cálido y tropical.", "Frío y seco.", "Templado y seco.", "Frío y húmedo."], 0, 106],
+  ["¿En qué parte del país se encuentra el departamento de Potosí?", ["Al Suroeste de Bolivia.", "Al Noroeste de Bolivia.", "Al Sureste de Bolivia.", "Al Noreste de Bolivia."], 0, 107],
+  ["¿La Cuenca del Plata está integrada por los ríos?", ["Paraguay, Pilcomayo y Bermejo.", "Pilcomayo, Beni y Guaporé.", "Itenez, Guaporé y Río Madera.", "Madera, Mamoré y Beni."], 0, 108],
+  ["¿Con qué departamentos limita el departamento de Potosí?", ["Al Norte Cochabamba y La Paz; al Este Potosí; al Oeste Argentina.", "Al Norte Oruro y Cochabamba; al Este Chuquisaca y Tarija; al Oeste Chile.", "Al Norte Santa Cruz; al Este Beni; al Oeste Chile.", "Al Norte Pando; al Este Brasil; al Oeste Perú."], 1, 109],
+  ["¿La cuenca cerrada o lacustre está constituida por?", ["Lago Titicaca, Puerto Villarroel y Puerto Villazón.", "Lago Titicaca, Río Desaguadero y Lago Poopó.", "Río Pilcomayo, Río Paraná y Laguna Verde.", "Lago Titicaca, Río Paraguay y Lago Poopó."], 1, 110],
+  ["¿Cuál es la montaña más alta del departamento de Potosí?", ["Licancábur.", "Lípez.", "Uturunco.", "Sajama."], 2, 111],
+  ["¿Cuál es la extensión territorial del departamento de Potosí?", ["118.128 km².", "181.218 km².", "118.281 km².", "118.218 km²."], 3, 112],
+  ["¿Cuál es el lago que se encuentra situado entre Bolivia y Perú?", ["Laguna Verde.", "Laguna Colorada.", "Lago Titicaca.", "Lago Poopó."], 2, 113],
+  ["¿Cómo es el clima del departamento de Potosí?", ["Templado y cálido.", "Frío y templado.", "Frío y seco.", "Tropical y húmedo."], 2, 114],
+  ["¿En qué parte del país se encuentra el departamento de Pando?", ["Al Norte de Bolivia.", "Al Noreste de Bolivia.", "Al Sur de Bolivia.", "Al Este de Bolivia."], 0, 115],
+  ["¿Cuál es la extensión territorial del departamento de Pando?", ["63.454 km².", "63.555 km².", "63.827 km².", "68.327 km²."], 2, 116],
+  ["¿Cuál es la capital de Pando?", ["Cobija.", "Trinidad.", "Pando.", "Puerto Rico."], 0, 117],
+  ["¿Cuántas provincias comprende el departamento de Pando?", ["Cuatro provincias.", "Cinco provincias.", "Seis provincias.", "Siete provincias."], 1, 118],
+  ["¿Cuáles son los ríos más importantes de Pando?", ["Madera, Beni, Madre de Dios, Abuná y Manuripi.", "Borneo, Itenez, Mato Grosso y Checa.", "Ichilo, Guacalla, San Pedro y Río Pando.", "Pilcomayo, Bermejo y Paraguay."], 0, 119],
+  ["¿Cuál es el nevado más alto de Bolivia?", ["Sajama.", "Illimani.", "Chacaltaya.", "Licancábur."], 0, 120],
+  ["¿Dónde se encuentra ubicado el Cristo de la Concordia?", ["Cerro Tunari.", "Cerro San Pedro.", "Cerro Verde.", "Cerro Rico."], 1, 121],
+  ["¿Con cuántas provincias cuenta el departamento de Cochabamba?", ["15 provincias.", "16 provincias.", "14 provincias.", "20 provincias."], 1, 122],
+  ["¿Dónde se encuentra ubicado el departamento de Tarija?", ["Al Sur de Bolivia.", "Al Noreste de Bolivia.", "Al Sureste de Bolivia.", "Al Oeste de Bolivia."], 0, 123],
+  ["¿Con qué departamentos limita el departamento de Tarija?", ["Al Norte Pando y Brasil; al Este Brasil y Santa Cruz.", "Al Norte Santa Cruz; al Este Pando; al Oeste Brasil.", "Al Norte Chuquisaca; al Este Paraguay; al Oeste Potosí y Chuquisaca.", "Al Norte Oruro; al Este Potosí; al Oeste Chile."], 2, 124],
+  ["¿Con cuántas provincias cuenta el departamento de Tarija?", ["Siete provincias.", "Seis provincias.", "Ocho provincias.", "Cinco provincias."], 1, 125],
+  ["¿Cuál es la capital de Tarija?", ["Tarija.", "Villazón.", "Trinidad.", "Cobija."], 0, 126],
+  ["¿Cuál es la extensión territorial de Tarija?", ["327.654 km².", "37.623 km².", "373.564 km².", "73.623 km²."], 1, 127],
+  ["¿Cómo es el clima en el departamento de Tarija?", ["Cálido y tropical.", "Frío, templado y cálido.", "Tropical y templado.", "Frío y seco."], 1, 128],
+  ["¿En qué parte del país se encuentra el departamento de Oruro?", ["Al Suroeste de Bolivia.", "Al Noroeste de Bolivia.", "Al Noreste de Bolivia.", "Al Este de Bolivia."], 0, 129],
+  ["¿La Cuenca del Plata está integrada por los ríos?", ["Paraguay, Pilcomayo y Bermejo.", "Pilcomayo, Beni y Guaporé.", "Itenez, Guaporé y Río Madera.", "Madera, Mamoré y Beni."], 0, 130],
+  ["¿Con qué departamentos limita el departamento de Oruro?", ["Al Norte La Paz; al Este Cochabamba y Potosí; al Oeste Chile; al Sur Potosí.", "Al Norte Oruro y Cochabamba; al Este Chuquisaca y Tarija; al Oeste Chile.", "Al Norte Santa Cruz; al Este Beni; al Oeste Chile.", "Al Norte Pando; al Este Brasil; al Oeste Perú."], 0, 131],
+  ["¿La cuenca cerrada o lacustre está constituida por?", ["Lago Titicaca, Puerto Villarroel y Puerto Villazón.", "Lago Titicaca, Río Desaguadero y Lago Poopó.", "Río Pilcomayo, Río Paraná y Laguna Verde.", "Lago Titicaca, Río Paraguay y Lago Poopó."], 1, 132],
+  ["¿Cuál es la montaña más alta del departamento de Oruro?", ["Pomerape.", "Sajama.", "Parinacota.", "Licancábur."], 1, 133],
+  ["¿Cuál es la extensión territorial del departamento de Oruro?", ["358.218 km².", "534.543 km².", "53.588 km².", "35.888 km²."], 2, 134],
+  ["¿Cuál es el lago que se encuentra situado entre Bolivia y Perú?", ["Laguna Verde.", "Laguna Colorada.", "Lago Titicaca.", "Lago Poopó."], 2, 135],
+  ["¿Cómo es el clima del departamento de Oruro?", ["Frío y seco.", "Frío y templado.", "Templado y seco.", "Tropical y húmedo."], 0, 136],
+  ["¿En qué parte del país se encuentra el departamento de Oruro?", ["Al Oeste de Bolivia.", "Al Noreste de Bolivia.", "Al Sureste de Bolivia.", "Al Este de Bolivia."], 0, 137],
+  ["¿Cuál es la extensión territorial del departamento de Santa Cruz?", ["374.542 km².", "370.621 km².", "375.445 km².", "307.621 km²."], 1, 138],
+  ["¿Cuál es la capital de Santa Cruz?", ["Santa Cruz de la Sierra y Leona.", "Santa Cruz.", "Santa Cruz de la Sierra.", "Leona."], 2, 139],
+  ["¿Cuántas provincias comprende el departamento de Santa Cruz?", ["Quince provincias.", "Catorce provincias.", "Dieciséis provincias.", "Veinte provincias."], 0, 140],
+  ["¿Cuál es la montaña más alta de Santa Cruz?", ["Pirirenda.", "Chacaltaya.", "Ninguna.", "Illimani."], 2, 141],
+  ["¿Dónde se encuentra ubicado el departamento de Santa Cruz?", ["Al Oeste de Bolivia.", "Al Este de Bolivia.", "Al Sureste de Bolivia.", "Al Norte de Bolivia."], 1, 142],
+  ["¿Con cuántas provincias cuenta el departamento de La Paz?", ["18 provincias.", "20 provincias.", "25 provincias.", "16 provincias."], 1, 143],
+  ["¿Cuál es la extensión territorial de América?", ["43 millones km².", "42 millones km².", "44 millones km².", "45 millones km²."], 0, 144],
+  ["¿Cuáles son los tres subcontinentes americanos?", ["América Geodésica, Lacustre y Silvestre.", "América Amazónica, Montañosa y de los Llanos.", "América del Sur, América del Norte y América Central.", "América del Sur, América del Este y América del Oeste."], 2, 145],
+  ["¿Cuántos países existen en América?", ["45 países.", "46 países.", "35 países.", "50 países."], 2, 146],
+  ["¿La montaña más alta de América es?", ["Sajama.", "Licancábur.", "Aconcagua.", "Illimani."], 2, 147],
+  ["¿Cuál es la capital de Bolivia?", ["La ciudad de Sucre.", "La ciudad de La Paz.", "La ciudad de Potosí.", "La ciudad de Cochabamba."], 0, 148],
+  ["¿En qué ciudad se encuentra la sede de gobierno de Bolivia?", ["La ciudad de La Paz.", "La ciudad de Sucre.", "La ciudad de Potosí.", "La ciudad de Oruro."], 0, 149],
+  ["¿Cuál es la situación geográfica de Bolivia?", ["Zona oriental de América del Sur.", "Zona central de América del Sur.", "Zona central de América del Norte.", "Zona occidental de América del Sur."], 1, 150],
+  ["¿Cuál es la extensión territorial geográfica de Bolivia?", ["1.105.581 km².", "1.098.851 km².", "1.089.581 km².", "1.098.581 km²."], 3, 151],
+  ["¿Cuál es la población de Bolivia según el documento?", ["8.274.325 habitantes.", "7.600.000 habitantes.", "9.274.325 habitantes.", "8.724.325 habitantes."], 0, 152],
+  ["¿Cuáles son los idiomas oficiales de Bolivia?", ["Español e inglés.", "Quechua y aymara solamente.", "Español, quechua, aymara y tupiguaraní.", "Español y portugués."], 2, 153],
+  ["¿Cuál es la religión de Bolivia según el documento?", ["Evangélica.", "Católica, con libertad de culto.", "Adventista.", "Ninguna."], 1, 154],
+  ["¿Cuál es la moneda oficial de Bolivia?", ["Peso boliviano.", "Boliviano (Bs).", "Dólar.", "Real."], 1, 155],
+  ["¿Cuáles son los tres Poderes del Estado?", ["Ejecutivo, Militar y Judicial.", "Legislativo, Económico y Judicial.", "Ejecutivo, Judicial y Legislativo.", "Ejecutivo, Electoral y Legislativo."], 2, 156],
+  ["¿Cómo está constituido el Poder Ejecutivo?", ["Presidente y vicepresidente por 4 años.", "Presidente, vicepresidente y 12 ministerios.", "Presidente y vicepresidente por 5 años, con 16 ministerios.", "Presidente, vicepresidente y 20 ministerios."], 2, 157],
+  ["¿Cuál es la división política de Bolivia?", ["9 departamentos, 121 provincias y 327 municipios.", "10 departamentos, 112 provincias y 327 municipios.", "9 departamentos, 112 provincias y 327 municipios.", "9 departamentos, 112 provincias y 372 municipios."], 2, 158],
+  ["¿En qué continente se encuentra Bolivia?", ["América del Sur.", "América del Este.", "América del Norte.", "Europa."], 0, 159],
+  ["¿Cuál es la extensión territorial de la frontera con Argentina?", ["763 km².", "773 km².", "737 km².", "741 km²."], 1, 160],
+  ["¿Cuál es la extensión territorial de la frontera con Brasil?", ["3433 km².", "3323 km².", "3423 km².", "3243 km²."], 2, 161],
+  ["¿Cuál es la extensión territorial de la frontera con Chile?", ["861 km².", "862 km².", "816 km².", "168 km²."], 0, 162],
+  ["¿Cuál es la extensión territorial de la frontera con Paraguay?", ["641 km².", "741 km².", "740 km².", "714 km²."], 1, 163],
+  ["¿Cuál es la extensión territorial de la frontera con Perú?", ["1037 km².", "1147 km².", "1047 km².", "1074 km²."], 2, 164],
+  ["¿Cuál es la extensión territorial de los límites con los diferentes países?", ["1.098.581 km².", "1.898.581 km².", "1.088.581 km².", "1.098.851 km²."], 0, 165],
+  ["¿Cuáles son los puntos extremos de Bolivia?", ["Latitud Norte y Longitud Occidental.", "Latitud Sur y Longitud Occidental.", "Latitud Sur y Longitud Oriental.", "Latitud Norte y Longitud Oriental."], 1, 166],
+  ["¿Cuál es la frontera natural que separa Bolivia y Chile?", ["Cordillera de las Américas.", "Cordillera de los Alpes.", "Cordillera de los Andes.", "Río Pilcomayo."], 2, 167],
+  ["¿Dónde se encuentra el Cerro nevado del Illimani?", ["Departamento de Potosí.", "Departamento de Oruro.", "Departamento de La Paz.", "Departamento de Cochabamba."], 2, 168],
+  ["¿A cuántos metros sobre el nivel del mar se encuentra el Lago Titicaca?", ["3810 msnm.", "3910 msnm.", "3818 msnm.", "3801 msnm."], 0, 169],
+  ["¿Qué departamentos de Bolivia pertenecen a la Cuenca Amazónica?", ["Beni, Oruro y Santa Cruz.", "Beni, Pando y Santa Cruz.", "Tarija, Pando y Potosí.", "La Paz, Oruro y Potosí."], 1, 170],
+  ["¿Qué departamento pertenece a la Cuenca del Plata?", ["Cochabamba.", "Santa Cruz.", "Tarija.", "Oruro."], 2, 171],
+  ["¿Cuáles son las Regiones de Bolivia?", ["Región del Plata, Amazónica y de los Llanos.", "Región Andina, Región Subandina y de los Llanos.", "Región Andina, Central y Oriental.", "Región Altiplano, Valle y Selva."], 1, 172],
+  ["¿Cómo está comprendida la Región Andina?", ["Valle y Cordillera de los Andes.", "Altiplano y Cordillera Central.", "Altiplano y Cordillera de los Andes.", "Llanos y Chaco."], 2, 173],
+  ["¿En qué región se encuentra la cima más alta del país?", ["Región Andina.", "Región Subandina.", "Región de los Llanos.", "Región del Plata."], 0, 174],
+  ["¿Cómo está comprendida la Región Subandina?", ["Los Llanos y Los Yungas.", "Los Valles y Los Yungas.", "Los Valles y Los Altiplanos.", "Amazonía y Chaco."], 1, 175],
+  ["¿Cómo está comprendida la Región de los Llanos?", ["Amazónica, Andina y del Gran Chaco.", "Amazónica, platense y del Gran Valle.", "Amazónica, platense y del Gran Chaco.", "Andina, Subandina y del Plata."], 2, 176],
+  ["¿Cuál es el nevado más elevado del país?", ["Sajama.", "Illimani.", "Licancábur.", "Chacaltaya."], 0, 177],
+  ["¿A qué cordillera pertenece el nevado Sajama?", ["Cordillera Oriental.", "Cordillera Occidental.", "Cordillera Central.", "Cordillera Real."], 1, 178],
+  ["¿Cuál es el volcán más activo a nivel mundial que se encuentra en Bolivia?", ["Volcán Zapaleri.", "Sajama.", "Illampu.", "Licancábur."], 3, 179],
+  ["¿Cuáles son las lagunas más conocidas de la Región Occidental?", ["Laguna Alalay y Laguna Verde.", "Laguna Colorada y Laguna Poopó.", "Laguna Colorada y Laguna Verde.", "Laguna Verde y Laguna Uru Uru."], 2, 180],
+  ["¿Cómo se divide la Cordillera Central?", ["Septentrional o Real, Central y Meridional.", "Septentrional o Real, Norte y Meridional.", "Septentrional o Real, Central y Oriental.", "Occidental, Oriental y Meridional."], 0, 181],
+  ["¿Dónde se encuentra la cadena montañosa más significativa de Bolivia?", ["Cordillera de Oruro.", "Cordillera de La Paz.", "Cordillera de Potosí.", "Cordillera de Tarija."], 1, 182],
+  ["¿Cómo está conformada la cadena montañosa más significativa de Bolivia?", ["Illimani, Sajama, Ancohuma, Mururata y Huayna Potosí.", "Illimani, Illampu, Ancohuma, Mururata y Cerro Rico de Potosí.", "Illimani, Illampu, Ancohuma, Mururata y Huayna Potosí.", "Illimani, Amboró, Condoriri y Tatasabaya."], 2, 183],
+  ["¿Dónde se encuentra el observatorio meteorológico más alto de Sudamérica?", ["Nevado de Chacaltaya.", "Nevado de Sajama.", "Nevado de Illimani.", "Nevado de Illampu."], 0, 184],
+  ["¿Cuáles son las tres cordilleras de Bolivia?", ["Cordillera de los Andes, Oriental y Central.", "Cordillera Occidental, Oriental y Central.", "Cordillera Occidental, Real y Central.", "Cordillera Occidental, Oriental y de los Andes."], 1, 185],
+  ["¿Cuál es el recurso mineral más importante del cerro Zapaleri?", ["Yacimientos de estaño.", "Yacimientos de petróleo.", "Yacimientos de litio.", "Yacimientos de plata."], 0, 186],
+  ["¿Cuál es la forma original del planeta Tierra?", ["Esférica.", "Redonda.", "Geodésica.", "Ovalada."], 2, 187],
+  ["¿En cuántas ramas se divide la geografía?", ["Geografía física y geografía militar.", "Geografía ambiental y geografía humana.", "Geografía física y geografía humana.", "Geografía general y geografía regional."], 2, 188],
+  ["¿Qué formula la Geografía General?", ["Hipótesis y teorías.", "Leyes y temas.", "Leyes y teorías.", "Solamente hipótesis."], 2, 189],
+  ["¿Qué es la Geografía física?", ["Ciencia de la Tierra que estudia el medio físico.", "Ciencia de las montañas que estudia el medio ambiente.", "Ciencia de las leyes del medio ambiente.", "Ciencia que estudia solo el clima."], 0, 190],
+  ["¿Qué es la climatología?", ["Rama de la geografía física que estudia el clima.", "Rama que estudia los fenómenos naturales.", "Rama que estudia el medio ambiente.", "Rama que estudia las montañas."], 0, 191],
+  ["¿Qué estudia la meteorología?", ["El espacio aéreo desde el punto de vista ambiental.", "El tiempo atmosférico desde el punto de vista físico.", "El clima desde el punto de vista geográfico.", "Las aguas subterráneas."], 1, 192],
+  ["¿Qué rama estudia de manera descriptiva y explicativa el relieve de la Tierra y de otros planetas?", ["Geopolítica.", "Geomorfología.", "Geodesia.", "Hidrografía."], 1, 193],
+  ["¿Qué estudia la hidrología?", ["La distribución aérea y espacial de los minerales.", "La distribución terrestre y temporal del espacio.", "La distribución espacial y temporal, y las propiedades del agua.", "Las masas vegetales de la Tierra."], 2, 194],
+  ["¿Qué estudia la hidrografía?", ["Todas las masas vegetales de la Tierra.", "Todas las masas de agua de la Tierra.", "Solamente los ríos.", "Solamente los lagos."], 1, 195],
+  ["¿Qué es la Geografía humana?", ["Ciencia social centrada en el estudio de las sociedades y sus territorios.", "Ciencia social centrada en los humanos y sus territorios.", "Ciencia social centrada en las cordilleras y sus territorios.", "Ciencia natural que estudia el relieve."], 0, 196],
+  ["¿Qué estudia la Geografía rural?", ["El mundo continental y los espacios rurales.", "El mundo rural y los espacios rurales.", "Las ciudades y regiones urbanas.", "Los sistemas de transporte."], 1, 197],
+  ["¿Cuál es el lago más extenso de La Paz?", ["Lago Poopó.", "Lago Titicaca.", "Lago Misisipi.", "Laguna Colorada."], 1, 198],
+  ["¿Cuál es la capital de Potosí?", ["Potosí.", "Ciudad de la Moneda.", "Ciudad de la Plata.", "Sucre."], 0, 199],
+  ["¿Cuál es la extensión territorial de Sucre?", ["51.425 km².", "55.124 km².", "15.524 km².", "51.524 km²."], 3, 200]
+];
+
+/* Helpers de consola */
+function findBySeq(seq) {
+  var i = seq - 1;
+  if (i < 0 || i >= questions.length) return null;
+  var q = questions[i];
+  return { seq: seq, doc: q[3] !== undefined ? q[3] : null, texto: q[0], opciones: q[1], correcta: ['A','B','C','D'][q[2]] + ' — ' + q[1][q[2]] };
+}
+function findByDoc(doc) {
+  for (var i = 0; i < questions.length; i++) {
+    if (questions[i][3] === doc) return findBySeq(i + 1);
+  }
+  return null;
+}
+window.findBySeq = findBySeq;
+window.findByDoc = findByDoc;
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+/* Claves geoExam — banco de Geografía */
+var KEY_HISTORY = 'geoExam_v1_history';
+var KEY_POOL = 'geoExam_v1_pool';
+var KEY_SEEN = 'geoExam_v1_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function makeRange(n) { var r = []; for (var i = 0; i < n; i++) r.push(i); return r; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) { if (seenEver[k]) seenArr.push(parseInt(k, 10)); }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) { console.warn('saveState error:', e); }
+}
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) { examHistory = JSON.parse(h); if (!Array.isArray(examHistory)) examHistory = []; }
+    attemptNumber = examHistory.length;
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) { pool = JSON.parse(p); if (!Array.isArray(pool)) pool = []; }
+    else { pool = shuffle(makeRange(questions.length)); }
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = []; seenEver = {}; attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) if (!inExam[i]) remaining.push(i);
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); }
+  }, 1000);
+}
+
+/* ============================================================
+   INFO
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) if (seenEver[k]) seen++;
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+    var seq = picked[j] + 1;
+    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;
+
+    var normales = [], finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]); else normales.push(q[1][o]);
+    }
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      seq: seq,
+      doc: doc,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
+    });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = (qd.doc !== null && qd.doc !== qd.seq)
+      ? '  (c' + qd.seq + ' · doc #' + qd.doc + ')'
+      : '  (#' + qd.seq + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
+  startTimer();
+}
+
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  var correct = 0;
+  var html = '';
+  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    var tag = (q.doc !== null && q.doc !== q.seq)
+      ? '(c' + q.seq + ' · doc #' + q.doc + ')'
+      : '(#' + q.seq + ')';
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">' + tag + '</span><br>';
+    if (isCorrect) {
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    } else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct, total: total, pct: pct, auto: !!auto
+  });
+  saveState();
+  renderInfo();
+  renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td><td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = []; attemptNumber = 0; seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    var tag = 'c' + (i + 1);
+    if (!Array.isArray(q) || (q.length !== 3 && q.length !== 4)) {
+      errores.push(tag + ': formato inválido'); continue;
+    }
+    if (!Array.isArray(q[1]) || q[1].length < 2) {
+      errores.push(tag + ': sin opciones'); continue;
+    }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push(tag + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+    if (q.length === 4 && (typeof q[3] !== 'number' || q[3] <= 0)) {
+      errores.push(tag + ': número original inválido (' + q[3] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault(); e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) { hayRespuestas = true; break; }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) return;
+  }
+  renderExam();
+});
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
+renderExam();
+</script>
+</body>
+</html>
