@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Geografía 2025</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Geografía 2025</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIGURACIÓN
+   ============================================================ */
+var TIME_MINUTES = 15;
+var QUESTIONS_PER_EXAM = 30;
+
+/* ============================================================
+   BANCO — Geografía 2025 (150 preguntas) — versión corregida
+   Formato: [texto, [opciones], índice_correcto, numeroOriginal]
+   índice: 0=A, 1=B, 2=C, 3=D
+   ============================================================ */
+var questions = [
+  ["Según la clasificación tradicional más difundida, ¿cuál es el río más largo del mundo?", ["Nilo.", "Amazonas.", "Yangtsé.", "Misisipi."], 0, 1],
+  ["¿Cuál es el océano más grande?", ["Atlántico.", "Índico.", "Pacífico.", "Ártico."], 2, 2],
+  ["¿Qué continente es el más pequeño en superficie?", ["Europa.", "Antártida.", "Oceanía.", "América del Sur."], 2, 3],
+  ["¿Cuál es la montaña más alta del mundo sobre el nivel del mar?", ["K2.", "Everest.", "Kangchenjunga.", "Lhotse."], 1, 4],
+  ["¿En qué continente se encuentra el desierto del Sahara?", ["Asia.", "África.", "América.", "Europa."], 1, 5],
+  ["¿Qué país tiene más islas en el mundo?", ["Indonesia.", "Filipinas.", "Suecia.", "Noruega."], 2, 6],
+  ["¿En qué hemisferio se encuentra la mayor parte de África?", ["Sur.", "Norte.", "Oeste.", "Este."], 1, 7],
+  ["¿Qué es la Geografía?", ["Estudio de los seres vivos.", "Estudio de la Tierra.", "Estudio de las rocas.", "Estudio de la atmósfera."], 1, 8],
+  ["¿Qué cordillera recorre la costa occidental de Sudamérica?", ["Cordillera Central.", "Cordillera de los Andes.", "Sierra Madre.", "Montañas Rocallosas."], 1, 9],
+  ["¿En qué océano está Madagascar?", ["Atlántico.", "Pacífico.", "Índico.", "Ártico."], 2, 10],
+  ["¿Cuál es el lago más profundo del mundo?", ["Lago Superior.", "Mar Caspio.", "Baikal.", "Lago Tanganica."], 2, 11],
+  ["¿En qué continente está el río Danubio?", ["Asia.", "Europa.", "África.", "América."], 1, 12],
+  ["¿Qué mar se encuentra entre Europa y África?", ["Mar Rojo.", "Mar Mediterráneo.", "Mar Negro.", "Mar Báltico."], 1, 13],
+  ["¿Cuál es el desierto más frío del mundo?", ["Gobi.", "Antártida.", "Atacama.", "Kalahari."], 1, 14],
+  ["¿Cuál es el continente con más países del mundo?", ["Asia.", "África.", "Europa.", "América."], 1, 15],
+  ["¿Cuál es el volcán más alto del mundo?", ["Vesubio.", "Ojos del Salado.", "Etna.", "Cotopaxi."], 1, 16],
+  ["¿Qué país tiene la mayor población del mundo?", ["Estados Unidos.", "India.", "China.", "Indonesia."], 1, 17],
+  ["¿En qué océano está el Triángulo de las Bermudas?", ["Pacífico.", "Atlántico.", "Índico.", "Ártico."], 1, 18],
+  ["¿Cuál es el río más caudaloso del mundo?", ["Nilo.", "Amazonas.", "Orinoco.", "Congo."], 1, 19],
+  ["¿En qué continente está el monte Kilimanjaro?", ["Asia.", "África.", "Europa.", "América."], 1, 20],
+  ["¿Qué país tiene más lagos en el mundo?", ["Rusia.", "Canadá.", "Estados Unidos.", "Finlandia."], 1, 21],
+  ["¿Qué es una península?", ["Tierra rodeada de agua por todos lados.", "Tierra cercada por el agua con un contacto con tierra de extensión mayor.", "Elevación de tierra mayor a 500 m.", "Depresión natural de la corteza terrestre."], 1, 22],
+  ["¿En qué mar desemboca el río Nilo?", ["Mar Rojo.", "Mar Mediterráneo.", "Mar Egeo.", "Mar Negro."], 1, 23],
+  ["¿Cuál es la cascada más alta del mundo?", ["Niágara.", "Salto Ángel.", "Iguazú.", "Victoria."], 1, 24],
+  ["¿Cuál es el país con más volcanes activos?", ["Japón.", "Indonesia.", "Filipinas.", "México."], 1, 25],
+  ["¿En qué continente está el desierto de Gobi?", ["África.", "Asia.", "América.", "Europa."], 1, 26],
+  ["¿Qué lago se encuentra entre Perú y Bolivia?", ["Lago Poopó.", "Lago Titicaca.", "Lago Arenal.", "Lago Maracaibo."], 1, 27],
+  ["¿Cuál es la capital de Islandia?", ["Oslo.", "Reikiavik.", "Estocolmo.", "Helsinki."], 1, 28],
+  ["¿En qué continente está la cordillera del Himalaya?", ["Europa.", "Asia.", "África.", "América."], 1, 29],
+  ["¿Cuál es la isla más grande del mundo?", ["Nueva Guinea.", "Groenlandia.", "Borneo.", "Madagascar."], 1, 30],
+  ["¿Cuál es el país más grande del mundo por superficie?", ["China.", "Rusia.", "Canadá.", "Estados Unidos."], 1, 31],
+  ["¿Cuál es el país más pequeño del mundo?", ["Mónaco.", "Nauru.", "San Marino.", "Ciudad del Vaticano."], 3, 32],
+  ["¿En qué continente está Turquía?", ["Solo Europa.", "Europa y Asia.", "Solo Asia.", "África."], 1, 33],
+  ["¿Cuál es la capital de Japón?", ["Seúl.", "Tokio.", "Pekín.", "Bangkok."], 1, 34],
+  ["¿Qué país tiene la mayor cantidad de habitantes en África?", ["Egipto.", "Nigeria.", "Sudáfrica.", "Etiopía."], 1, 35],
+  ["¿Cuál es la capital de Australia?", ["Sídney.", "Melbourne.", "Canberra.", "Brisbane."], 2, 36],
+  ["¿En qué país se encuentra la ciudad de Dubái?", ["Arabia Saudita.", "Emiratos Árabes Unidos.", "Catar.", "Omán."], 1, 37],
+  ["¿Cuál es la capital de Canadá?", ["Toronto.", "Ottawa.", "Montreal.", "Vancouver."], 1, 38],
+  ["¿Cuál es el país con más población en América?", ["Brasil.", "EE.UU.", "México.", "Colombia."], 1, 39],
+  ["¿En qué continente está Kazajistán?", ["Europa.", "Asia.", "África.", "América."], 1, 40],
+  ["¿Cuál es la capital de Egipto?", ["Alejandría.", "El Cairo.", "Luxor.", "Asuán."], 1, 41],
+  ["¿En qué país está la ciudad de Casablanca?", ["Argelia.", "Marruecos.", "Túnez.", "Libia."], 1, 42],
+  ["¿Cuál es la capital de la India?", ["Bombay.", "Nueva Delhi.", "Calcuta.", "Bangalore."], 1, 43],
+  ["¿Qué país está entre Estados Unidos y Sudamérica?", ["Colombia.", "México.", "Panamá.", "Cuba."], 2, 44],
+  ["¿Cuál es el idioma más hablado del mundo por número de hablantes nativos?", ["Inglés.", "Chino mandarín.", "Español.", "Hindi."], 1, 45],
+  ["¿Qué país tiene más husos horarios si se incluyen sus territorios de ultramar?", ["Estados Unidos.", "Rusia.", "Francia.", "Brasil."], 2, 46],
+  ["¿Cuál es la capital judicial de Sudáfrica?", ["Pretoria.", "Bloemfontein.", "Ciudad del Cabo.", "Johannesburgo."], 1, 47],
+  ["Rama de la geografía que se encarga del estudio y descripción de las aguas de la Tierra:", ["Geología.", "Hidrografía.", "Meteorología.", "Topografía."], 1, 48],
+  ["¿Cuál es el país más poblado de Europa, si se incluyen los países transcontinentales?", ["Alemania.", "Rusia.", "Francia.", "Reino Unido."], 1, 49],
+  ["¿Cuál es la capital de Tailandia?", ["Yakarta.", "Bangkok.", "Hanói.", "Manila."], 1, 50],
+  ["¿Cuál es el país más grande de Sudamérica?", ["Argentina.", "Brasil.", "Perú.", "Colombia."], 1, 51],
+  ["Proceso por el cual el agua de los ríos desgasta y transporta sedimentos:", ["Meteorización.", "Erosión.", "Sedimentación únicamente.", "Fosilización."], 1, 52],
+  ["¿Cuál es la capital de Argentina?", ["Córdoba.", "Buenos Aires.", "Rosario.", "Mendoza."], 1, 53],
+  ["¿Qué río marca parte de la frontera entre México y Estados Unidos?", ["Río Colorado.", "Río Bravo.", "Río Grande.", "Río Yaqui."], 1, 54],
+  ["¿En qué país está el Canal de Panamá?", ["Costa Rica.", "Panamá.", "Colombia.", "Nicaragua."], 1, 55],
+  ["¿Cuál es el lago de agua dulce más grande de Sudamérica?", ["Lago Titicaca.", "Lago Maracaibo.", "Lago Poopó.", "Lago Valencia."], 0, 56],
+  ["¿Cuál es la capital de Perú?", ["Cuzco.", "Lima.", "Arequipa.", "Trujillo."], 1, 57],
+  ["¿Qué país limita con todos los de Sudamérica excepto Chile y Ecuador?", ["Argentina.", "Brasil.", "Colombia.", "Perú."], 1, 58],
+  ["¿Cuál es la montaña más alta de América?", ["Monte McKinley.", "Aconcagua.", "Huascarán.", "Chimborazo."], 1, 59],
+  ["¿En qué país se encuentra principalmente el desierto de Atacama?", ["Perú.", "Chile.", "Bolivia.", "Argentina."], 1, 60],
+  ["¿Cuál es la capital de Uruguay?", ["Punta del Este.", "Montevideo.", "Salto.", "Colonia."], 1, 61],
+  ["¿Qué país de Centroamérica es el más poblado?", ["Honduras.", "Guatemala.", "El Salvador.", "Nicaragua."], 1, 62],
+  ["¿Cuál es la capital de Ecuador?", ["Guayaquil.", "Quito.", "Cuenca.", "Ambato."], 1, 63],
+  ["¿Qué país está al norte de Brasil?", ["Argentina.", "Venezuela.", "Perú.", "Bolivia."], 1, 64],
+  ["¿Cuál es el río más largo de Sudamérica?", ["Orinoco.", "Amazonas.", "Paraná.", "São Francisco."], 1, 65],
+  ["¿Qué cordillera recorre toda la costa occidental de Sudamérica?", ["Sierra Nevada.", "Cordillera de los Andes.", "Cordillera Central.", "Cordillera Costera."], 1, 66],
+  ["¿Cuál es la capital de México?", ["Guadalajara.", "CDMX.", "Monterrey.", "Puebla."], 1, 67],
+  ["¿Qué país es una isla en el Caribe y comparte territorio con Haití?", ["Cuba.", "República Dominicana.", "Puerto Rico.", "Jamaica."], 1, 68],
+  ["¿Qué país tiene más volcanes en Centroamérica?", ["Guatemala.", "Honduras.", "Nicaragua.", "Costa Rica."], 0, 69],
+  ["¿Cuál es la capital de Colombia?", ["Medellín.", "Bogotá.", "Cali.", "Barranquilla."], 1, 70],
+  ["¿Cuál es la capital más alta de Bolivia (sede de gobierno)?", ["Sucre.", "La Paz.", "Cochabamba.", "Santa Cruz."], 1, 71],
+  ["¿Cuál es el punto más alto de Bolivia?", ["Illimani.", "Sajama.", "Huayna Potosí.", "Illampu."], 1, 72],
+  ["¿Qué departamento boliviano limita con Brasil y Paraguay?", ["Beni.", "Santa Cruz.", "La Paz.", "Pando."], 1, 73],
+  ["El lago navegable más alto del mundo, compartido con Perú:", ["Lago Poopó.", "Lago Titicaca.", "Chungará.", "Lago Verde."], 1, 74],
+  ["¿Cuál es el río más largo de Bolivia?", ["Beni.", "Mamoré.", "Madre de Dios.", "Pilcomayo."], 1, 75],
+  ["El estudio de la Tierra se divide en tres partes principales que son:", ["Corteza, manto y núcleo.", "Geosfera, hidrosfera y atmósfera.", "Continentes, océanos y atmósfera.", "Tierra, agua y aire."], 1, 76],
+  ["¿En qué departamento está el Salar de Uyuni?", ["Oruro.", "Potosí.", "Cochabamba.", "Chuquisaca."], 1, 77],
+  ["¿Cuál es el clima predominante en el altiplano boliviano?", ["Tropical.", "Frío.", "Templado.", "Árido cálido."], 1, 78],
+  ["El Parque Nacional Madidi se encuentra en:", ["Pando.", "La Paz.", "Beni.", "Cochabamba."], 1, 79],
+  ["¿Qué departamento tiene mayor superficie en Bolivia?", ["La Paz.", "Santa Cruz.", "Beni.", "Potosí."], 1, 80],
+  ["¿Qué valle es conocido por su producción de vinos en Bolivia?", ["Los Yungas.", "Tarija.", "Cochabamba.", "El Alto."], 1, 81],
+  ["¿En qué región se encuentra la Chiquitania?", ["Beni.", "Santa Cruz.", "Pando.", "La Paz."], 1, 82],
+  ["¿Qué son los lagos?", ["Agua corriente que desemboca en el mar.", "Cuerpos de agua generalmente rodeados de tierra.", "Cuerpo de agua salada.", "Depresión terrestre sin agua."], 1, 83],
+  ["¿Qué departamento de Bolivia no tiene límites internacionales?", ["Chuquisaca.", "Cochabamba.", "Oruro.", "Tarija."], 1, 84],
+  ["¿Cuál es el volcán más alto de Bolivia?", ["Licancabur.", "Sajama.", "Ollagüe.", "Tunupa."], 1, 85],
+  ["¿Qué región natural de Bolivia es conocida por sus llanuras inundables?", ["Altiplano.", "Beni.", "Valles.", "Yungas."], 1, 86],
+  ["¿En qué departamento se encuentra el Parque Nacional Noel Kempff Mercado?", ["Beni.", "Santa Cruz.", "Pando.", "La Paz."], 1, 87],
+  ["¿Qué lago boliviano se secó en gran parte en 2015?", ["Titicaca.", "Poopó.", "Uru Uru.", "Rogaguado."], 1, 88],
+  ["¿Qué río bordea el sector occidental de la ciudad de Trinidad, en el Beni?", ["Iténez.", "Mamoré.", "Beni.", "Madre de Dios."], 1, 89],
+  ["¿Cuál es el pico más alto de la Cordillera Real?", ["Sajama.", "Illimani.", "Ancohuma.", "Huayna Potosí."], 1, 90],
+  ["¿Qué región boliviana es conocida por la producción de soya?", ["Tarija.", "Santa Cruz.", "Beni.", "Pando."], 1, 91],
+  ["¿Cuál es la capital del departamento de Pando?", ["Riberalta.", "Cobija.", "Guayaramerín.", "Puerto Rico."], 1, 92],
+  ["¿En qué departamento se encuentra la Reserva de la Biosfera y Tierra Comunitaria de Pilón Lajas?", ["Beni.", "La Paz.", "Santa Cruz.", "Pando."], 1, 93],
+  ["¿Qué departamento boliviano limita con Chile y Argentina?", ["Oruro.", "Potosí.", "Tarija.", "La Paz."], 1, 94],
+  ["¿Cuál es un puerto fluvial boliviano importante sobre el río Ichilo?", ["Cobija.", "Puerto Villarroel.", "Guayaramerín.", "Riberalta."], 1, 95],
+  ["¿Qué serranía se encuentra en el Chaco boliviano?", ["Cordillera Real.", "Serranía de los Chiquitos.", "Cordillera Oriental.", "Serranía del Aguaragüe."], 3, 96],
+  ["¿Qué lago boliviano es famoso por su pesca de pejerrey?", ["Poopó.", "Titicaca.", "Uru Uru.", "Rogaguado."], 1, 97],
+  ["¿En qué región se encuentran los Yungas?", ["Cochabamba.", "La Paz.", "Santa Cruz.", "Beni."], 1, 98],
+  ["¿Qué departamento tiene menor extensión territorial en Bolivia?", ["Chuquisaca.", "Tarija.", "Oruro.", "Pando."], 1, 99],
+  ["¿Qué dos ríos se unen en Bolivia para formar el río Madeira?", ["Madre de Dios y Beni.", "Mamoré y Beni.", "Mamoré y Madre de Dios.", "Beni y Pilcomayo."], 1, 100],
+  ["¿Cuántos departamentos tiene Bolivia?", ["8 departamentos.", "9 departamentos.", "10 departamentos.", "12 departamentos."], 1, 101],
+  ["¿Cuál es la capital constitucional de Bolivia?", ["La Paz.", "Sucre.", "Cochabamba.", "Santa Cruz."], 1, 102],
+  ["¿Qué ciudad es la sede de gobierno de Bolivia?", ["Sucre.", "La Paz.", "Oruro.", "Potosí."], 1, 103],
+  ["¿En qué departamento se encuentra la ciudad de Trinidad?", ["Pando.", "Beni.", "Santa Cruz.", "La Paz."], 1, 104],
+  ["¿Qué son los océanos?", ["Cuerpos de agua dulce muy grandes.", "Grandes cuerpos de agua salada.", "Lagos de gran tamaño.", "Ríos que desembocan en el mar."], 1, 105],
+  ["¿Cuál es el departamento más pequeño de Bolivia?", ["Chuquisaca.", "Tarija.", "Oruro.", "Pando."], 1, 106],
+  ["¿Qué departamento limita con Brasil y Perú?", ["Beni.", "Pando.", "Santa Cruz.", "La Paz."], 1, 107],
+  ["¿Cuál es la capital del departamento de Tarija?", ["Bermejo.", "Tarija.", "Yacuiba.", "Villamontes."], 1, 108],
+  ["¿En qué departamento se encuentra el Salar de Uyuni?", ["Oruro.", "Potosí.", "Cochabamba.", "Chuquisaca."], 1, 109],
+  ["¿Qué río marca parte de la frontera entre Bolivia y Argentina?", ["Pilcomayo.", "Bermejo.", "San Juan.", "Paraná."], 0, 110],
+  ["¿Qué recurso natural es abundante en Potosí?", ["Petróleo.", "Minerales.", "Gas natural.", "Bosques."], 1, 111],
+  ["¿Qué cultivo es característico de los Yungas paceños?", ["Café.", "Coca.", "Cacao.", "Caña de azúcar."], 1, 112],
+  ["¿Cuál fue el principal producto de exportación de Bolivia por valor en 2024?", ["Gas natural.", "Soja.", "Minerales.", "Madera."], 0, 113],
+  ["¿Cuáles son las cuencas de Bolivia?", ["Amazonas, Orinoco y Pacífico.", "Plata, Amazonas y Lacustre.", "Atlántico, Pacífico e Índico.", "Beni, Mamoré y Madre de Dios."], 1, 114],
+  ["¿Qué departamento produce más gas natural en Bolivia?", ["Santa Cruz.", "Tarija.", "La Paz.", "Cochabamba."], 1, 115],
+  ["¿Dónde se encuentra la región de los Valles?", ["Al este de los llanos.", "En la franja intermedia entre la cordillera de los Andes y los llanos orientales.", "En la zona más alta del altiplano.", "En la frontera con Perú."], 1, 116],
+  ["¿Qué ciudad es un importante centro petrolero en Tarija?", ["Yacuiba.", "Bermejo.", "Villamontes.", "Entre Ríos."], 1, 117],
+  ["¿Qué departamento produce la mayor cantidad de quinua?", ["Potosí.", "Oruro.", "La Paz.", "Cochabamba."], 1, 118],
+  ["¿Qué recurso natural se extrae del Mutún en Santa Cruz?", ["Oro y plata.", "Hierro y manganeso.", "Estaño y plomo.", "Cobre y zinc."], 1, 119],
+  ["¿Qué puerto boliviano está situado sobre el río Paraguay y ofrece una salida directa hacia la hidrovía Paraguay–Paraná?", ["Puerto Suárez.", "Puerto Busch.", "Puerto Quijarro.", "Puerto Villarroel."], 1, 120],
+  ["¿Qué ciudad es un importante centro maderero en el Beni?", ["Riberalta.", "Trinidad.", "Guayaramerín.", "San Borja."], 0, 121],
+  ["¿En qué departamento está el lago Poopó?", ["Potosí.", "Oruro.", "La Paz.", "Cochabamba."], 1, 122],
+  ["¿Qué ciudad de Bolivia es famosa por su Carnaval declarado Patrimonio de la Humanidad?", ["La Paz.", "Oruro.", "Potosí.", "Tarija."], 1, 123],
+  ["¿Cuál es la superficie territorial de Bolivia?", ["982.145 km².", "1.098.581 km².", "1.542.310 km².", "890.456 km²."], 1, 124],
+  ["¿Qué ciudad es conocida como la Capital Folclórica de Bolivia?", ["Potosí.", "Oruro.", "Sucre.", "Tarija."], 1, 125],
+  ["¿Cómo se organiza Bolivia territorialmente?", ["Estados, provincias y distritos.", "Departamentos, provincias, municipios y territorio indígena.", "Regiones, cantones y aldeas.", "Provincias, municipios y comunidades."], 1, 126],
+  ["¿Qué región boliviana es conocida por la producción de uvas y vinos?", ["Los Yungas.", "Tarija.", "Cochabamba.", "Valle de la Luna."], 1, 127],
+  ["¿Qué conjunto de actividades económicas es tradicional en el altiplano boliviano?", ["Minería, agricultura y ganadería.", "Pesca oceánica y turismo de playa.", "Explotación forestal tropical.", "Extracción de petróleo en llanuras."], 0, 128],
+  ["¿Entre qué meridianos se encuentra Bolivia?", ["50°12' y 60°45' de longitud occidental.", "57°26' y 69°38' de longitud occidental.", "70°15' y 55°30' de longitud oriental.", "60°00' y 70°00' de longitud occidental."], 1, 129],
+  ["¿Qué departamento es conocido por la producción de castaña?", ["Beni.", "Pando.", "Santa Cruz.", "La Paz."], 1, 130],
+  ["¿Qué es un mapa?", ["Fotografía aérea de la Tierra.", "Representación geográfica de la Tierra.", "Dibujo artístico de un lugar.", "Esquema sin escala de una zona."], 1, 131],
+  ["¿Qué indica la escala de un mapa?", ["La cantidad de colores del dibujo.", "La relación y proporción entre el área representada y la realidad.", "La orientación del mapa.", "La fecha de elaboración."], 1, 132],
+  ["¿Qué es la latitud?", ["Distancia entre dos meridianos.", "Distancia angular medida en grados, minutos y segundos desde el Ecuador hasta un punto cualquiera.", "Altura sobre el nivel del mar.", "Distancia entre el norte y el sur del planeta."], 1, 133],
+  ["¿Qué es la longitud geográfica?", ["Altura de un lugar respecto al mar.", "Distancia angular al este o al oeste del meridiano de Greenwich.", "Distancia entre el Ecuador y un punto.", "Extensión de un territorio de norte a sur."], 1, 134],
+  ["¿Cuál es el meridiano de referencia?", ["Meridiano de París.", "Meridiano de Greenwich.", "Meridiano de Washington.", "Meridiano de Berlín."], 1, 135],
+  ["¿Cuál es el paralelo de referencia?", ["Trópico de Cáncer.", "El Ecuador.", "Trópico de Capricornio.", "Círculo Polar Ártico."], 1, 136],
+  ["¿Qué tipo de mapa muestra las fronteras entre países?", ["Mapa físico.", "Mapa político.", "Mapa temático.", "Mapa topográfico."], 1, 137],
+  ["¿Qué tipo de mapa muestra montañas, ríos y lagos?", ["Mapa político.", "Mapa físico.", "Mapa de carreteras.", "Mapa demográfico."], 1, 138],
+  ["¿Qué instrumento se usa para orientarse con un mapa?", ["Termómetro.", "Brújula.", "Barómetro.", "Anemómetro."], 1, 139],
+  ["¿Qué significan las curvas de nivel en un mapa topográfico?", ["La temperatura de la zona.", "La altitud o elevación del terreno.", "La cantidad de lluvia.", "La densidad de población."], 1, 140],
+  ["¿Qué es una carta topográfica?", ["Dibujo sin escala de una ciudad.", "Mapa detallado del relieve de una zona.", "Fotografía de satélite.", "Esquema de rutas de transporte."], 1, 141],
+  ["¿Qué indica la leyenda de un mapa?", ["La historia del lugar.", "El significado de los símbolos del mapa.", "La lista de países que aparecen.", "El nombre del autor."], 1, 142],
+  ["¿Qué es un mapa temático?", ["Mapa que solo muestra fronteras.", "Mapa que refleja un aspecto particular de la zona.", "Mapa sin escala ni orientación.", "Dibujo artístico de la naturaleza."], 1, 143],
+  ["¿Qué proyección se utiliza comúnmente para mapas del mundo?", ["Proyección Cilíndrica Simple.", "Proyección de Mercator.", "Proyección Cónica.", "Proyección Azimutal."], 1, 144],
+  ["¿Qué es la cartografía?", ["Estudio de los terremotos.", "Estudio y elaboración de mapas.", "Ciencia que estudia los ríos.", "Análisis de suelos."], 1, 145],
+  ["¿Qué representan las coordenadas geográficas?", ["La distancia entre dos ciudades.", "Sistema de referencia que permite la localización exacta de cualquier punto.", "La altitud sobre el nivel del mar.", "El tamaño de un país."], 1, 146],
+  ["¿Qué es la simbología cartográfica?", ["El conjunto de colores de un mapa.", "Conjunto de signos para representar objetos geográficos.", "La lista de nombres que aparecen.", "La escala del dibujo."], 1, 147],
+  ["¿Qué es el relieve?", ["La capa de agua que cubre la Tierra.", "Las alteraciones o formas de la corteza terrestre.", "La vegetación de una zona.", "El clima de una región."], 1, 148],
+  ["¿Qué es la escala gráfica?", ["Un número que indica la proporción.", "Representación visual de la escala mediante una línea dividida.", "La lista de medidas del mapa.", "La relación entre colores y tamaños."], 1, 149],
+  ["¿Qué indican las coordenadas geográficas?", ["La hora de cada lugar.", "La ubicación exacta de un lugar en la superficie terrestre.", "La profundidad de los océanos.", "La extensión de los continentes."], 1, 150]
+];
+
+/* Helpers de consola */
+function findBySeq(seq) {
+  var i = seq - 1;
+  if (i < 0 || i >= questions.length) return null;
+  var q = questions[i];
+  return { seq: seq, doc: q[3] !== undefined ? q[3] : null, texto: q[0], opciones: q[1], correcta: ['A','B','C','D'][q[2]] + ' — ' + q[1][q[2]] };
+}
+function findByDoc(doc) {
+  for (var i = 0; i < questions.length; i++) {
+    if (questions[i][3] === doc) return findBySeq(i + 1);
+  }
+  return null;
+}
+window.findBySeq = findBySeq;
+window.findByDoc = findByDoc;
+
+/* ============================================================
+   ESTADO GLOBAL
+   ============================================================ */
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+var KEY_HISTORY = 'geo2025_v2_history';
+var KEY_POOL = 'geo2025_v2_pool';
+var KEY_SEEN = 'geo2025_v2_seen';
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function makeRange(n) { var r = []; for (var i = 0; i < n; i++) r.push(i); return r; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+/* ============================================================
+   PERSISTENCIA
+   ============================================================ */
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) { if (seenEver[k]) seenArr.push(parseInt(k, 10)); }
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) { console.warn('saveState error:', e); }
+}
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) { examHistory = JSON.parse(h); if (!Array.isArray(examHistory)) examHistory = []; }
+    attemptNumber = examHistory.length;
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) { pool = JSON.parse(p); if (!Array.isArray(pool)) pool = []; }
+    else { pool = shuffle(makeRange(questions.length)); }
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+    }
+  } catch (e) {
+    console.warn('loadState error:', e);
+    pool = shuffle(makeRange(questions.length));
+    examHistory = []; seenEver = {}; attemptNumber = 0;
+  }
+}
+
+/* ============================================================
+   SELECCIÓN CON COBERTURA TOTAL
+   ============================================================ */
+function pickQuestions(n) {
+  var picked = [];
+  var inExam = {};
+  var safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) if (!inExam[i]) remaining.push(i);
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+/* ============================================================
+   TIMER
+   ============================================================ */
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60);
+  var s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); }
+  }, 1000);
+}
+
+/* ============================================================
+   INFO
+   ============================================================ */
+function renderInfo() {
+  var total = questions.length;
+  var seen = 0;
+  for (var k in seenEver) if (seenEver[k]) seen++;
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) +
+    ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
+    ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = [
+    "todas las anteriores", "todos los anteriores",
+    "ninguna de las anteriores", "ninguno de los anteriores",
+    "ninguna de las opciones anteriores"
+  ];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+    var seq = picked[j] + 1;
+    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;
+
+    var normales = [], finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase();
+      var esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) {
+        if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      }
+      if (esFinal) finales.push(q[1][o]); else normales.push(q[1][o]);
+    }
+    var opciones = shuffle(normales).concat(finales);
+
+    currentQuestions.push({
+      seq: seq,
+      doc: doc,
+      text: q[0],
+      options: opciones,
+      correctIdx: opciones.indexOf(correctText)
+    });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div');
+    div.className = 'question';
+
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span');
+    span.className = 'qid';
+    span.textContent = (qd.doc !== null && qd.doc !== qd.seq)
+      ? '  (c' + qd.seq + ' · doc #' + qd.doc + ')'
+      : '  (#' + qd.seq + ')';
+    p.appendChild(span);
+    div.appendChild(p);
+
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio';
+      input.name = 'q' + k;
+      input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+
+  saveState();
+  renderInfo();
+  startTimer();
+}
+
+/* ============================================================
+   CALIFICAR
+   ============================================================ */
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+
+  var correct = 0;
+  var html = '';
+  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+
+    var tag = (q.doc !== null && q.doc !== q.seq)
+      ? '(c' + q.seq + ' · doc #' + q.doc + ')'
+      : '(#' + q.seq + ')';
+
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
+            ' <span class="qid">' + tag + '</span><br>';
+    if (isCorrect) {
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    } else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+
+  attemptNumber++;
+  examHistory.push({
+    attempt: attemptNumber,
+    date: new Date().toLocaleString(),
+    correct: correct, total: total, pct: pct, auto: !!auto
+  });
+  saveState();
+  renderInfo();
+  renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* ============================================================
+   HISTORIAL
+   ============================================================ */
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+  var html = '<h2>Historial de intentos</h2><table><thead><tr>' +
+             '<th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th>' +
+             '</tr></thead><tbody>';
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td><td>' + h.date + '</td>' +
+            '<td>' + h.correct + '/' + h.total + '</td>' +
+            '<td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = []; attemptNumber = 0; seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try {
+    localStorage.removeItem(KEY_HISTORY);
+    localStorage.removeItem(KEY_POOL);
+    localStorage.removeItem(KEY_SEEN);
+  } catch (e) {}
+  renderHistory();
+  renderExam();
+}
+
+/* ============================================================
+   VALIDACIÓN DEL BANCO
+   ============================================================ */
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i];
+    var tag = 'c' + (i + 1);
+    if (!Array.isArray(q) || (q.length !== 3 && q.length !== 4)) {
+      errores.push(tag + ': formato inválido'); continue;
+    }
+    if (!Array.isArray(q[1]) || q[1].length < 2) {
+      errores.push(tag + ': sin opciones'); continue;
+    }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) {
+      errores.push(tag + ': índice correcto fuera de rango (' + q[2] + ')');
+    }
+    if (q.length === 4 && (typeof q[3] !== 'number' || q[3] <= 0)) {
+      errores.push(tag + ': número original inválido (' + q[3] + ')');
+    }
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco de preguntas:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es) en el banco:</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+/* ============================================================
+   AVISO AL CERRAR/RECARGAR
+   ============================================================ */
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault(); e.returnValue = '';
+  }
+});
+
+/* ============================================================
+   BOTONES
+   ============================================================ */
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hayRespuestas = false;
+  for (var i = 0; i < currentQuestions.length; i++) {
+    if (document.querySelector('input[name="q' + i + '"]:checked')) { hayRespuestas = true; break; }
+  }
+  if (hayRespuestas && !examSubmitted) {
+    if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) return;
+  }
+  renderExam();
+});
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+/* ============================================================
+   ARRANQUE
+   ============================================================ */
+loadState();
+renderHistory();
+renderExam();
+</script>
+</body>
+</html>
