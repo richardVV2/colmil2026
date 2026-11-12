@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Literatura / Lenguaje 2024</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+  .container { max-width: 900px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+  h1 { text-align: center; }
+  #timer { font-size: 1.4em; font-weight: bold; color: #b30000; text-align: center; margin: 10px 0; }
+  #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
+  .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
+  .question p { font-weight: bold; }
+  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
+  label { display: block; margin: 5px 0; cursor: pointer; }
+  button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
+  button:hover { background: #004999; }
+  button:disabled { background: #999; cursor: not-allowed; }
+  .correct { color: green; font-weight: bold; }
+  .incorrect { color: red; font-weight: bold; }
+  .result { margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; }
+  .history { margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 5px; }
+  .history table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  .history th, .history td { padding: 6px 10px; border-bottom: 1px solid #ddd; text-align: left; }
+  .history th { background: #eef; }
+  .good { color: green; font-weight: bold; }
+  .bad { color: red; font-weight: bold; }
+  #clearBtn { background: #888; }
+  #clearBtn:hover { background: #666; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Examen de Literatura / Lenguaje 2024</h1>
+  <div id="attempt-info"></div>
+  <div id="timer">Tiempo restante: 15:00</div>
+  <form id="exam"></form>
+  <div style="text-align:center;">
+    <button type="button" id="submitBtn">Calificar</button>
+    <button type="button" id="resetBtn">Nuevo examen</button>
+    <button type="button" id="clearBtn">Borrar historial</button>
+  </div>
+  <div id="result" class="result"></div>
+  <div id="history" class="history"></div>
+</div>
+
+<script>
+var TIME_MINUTES = 15;
+var QUESTIONS_PER_EXAM = 30;
+
+/* BANCO — Literatura / Lenguaje 2024
+   [texto, [opciones], índice, númeroDoc]
+   índice: 0=A, 1=B, 2=C, 3=D
+   Nota: el .docx NO traía la clave correcta de este banco
+   (la sección "CORRECTAS" era del examen de Geografía).
+*/
+var questions = [
+  ["¿Qué son los Homónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que, siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 1, 1],
+  ["¿Qué son los Sinónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 0, 2],
+  ["¿Qué son los Parónimos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que, siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 2, 3],
+  ["¿Qué son los antónimos?", ["Son términos de forma distinta y de significación semejante.", "Son aquellas palabras cuyos significados son opuestos entre sí.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 1, 4],
+  ["¿Qué son los Homólogos?", ["Son términos de forma distinta y de significación semejante.", "Son los vocablos que siendo iguales por su forma, tienen distinta significación.", "Son dos o más vocablos que tienen entre sí cierta semejanza por su forma.", "Son los que significan una misma cosa."], 2, 5],
+  ["¿Qué significa la palabra Verbigracia?", ["Por ejemplo.", "Al contrario.", "Por lo tanto.", "Porque."], 0, 6],
+  ["¿Cuándo se debe escribir con letra mayúscula?", ["Después de un punto seguido.", "Después de un punto aparte.", "Cuando es la primera palabra de un escrito.", "Todas las anteriores."], 3, 7],
+  ["¿Cuándo se debe escribir con letra mayúscula?", ["Después de la coma.", "Después de los dos puntos.", "Después del punto y coma.", "Solo los incisos b y c."], 1, 8],
+  ["¿Cómo se llaman las mayúsculas iniciales de los versos de una poesía?", ["Poesía versal.", "Mayúscula versal.", "Letras versales.", "Todas las anteriores."], 1, 9],
+  ["¿Quiénes llevan mayúscula inicial?", ["Los nombres de los pueblos.", "Los nombres y apellidos de las personas.", "Los nombres de las instituciones.", "Todas las anteriores."], 3, 10],
+  ["¿Quiénes llevan mayúscula inicial?", ["Los apodos.", "Los días de la semana.", "Los meses.", "Todas las anteriores."], 3, 11],
+  ["¿Cuándo se escribe con minúscula los nombres de cargos importantes?", ["Cuando la jerarquía del cargo es menor a otra.", "Cuando el cargo va subrayado.", "Cuando acompañan al nombre propio.", "Ninguna de las anteriores."], 2, 12],
+  ["¿Por qué la letra B es unísona?", ["Porque es una sola.", "Porque conserva el mismo sonido antes de cualquiera de las vocales.", "Porque es labial y se pronuncia con los labios.", "Porque es la segunda letra del alfabeto."], 1, 13],
+  ["¿Qué palabras llevan B inicial?", ["Todas las palabras que empiezan con bu.", "Todas las palabras que empiezan con bur.", "Todas las palabras que empiezan con bus.", "Todas las anteriores."], 3, 14],
+  ["¿Después de la sílaba cu, se escribe con b o v?", ["Con b.", "Con v.", "Con ambas.", "Ninguna de las anteriores."], 0, 15],
+  ["¿Cuáles son las palabras que llevan b inicial?", ["Las que empiezan con bi, bir y bis.", "Las que empiezan con bu, bur y bus.", "Las que empiezan con be, ber y bes.", "Las que empiezan con ba, bar y bas."], 1, 16],
+  ["Se escribe con b cuando las palabras empiezan con:", ["bi, bis, bir.", "ob, obr, sib.", "bo, bos, bob.", "ab, obs, sub."], 0, 17],
+  ["¿Qué significa la voz latina Bis?", ["Dúo o par.", "Espacio o tiempo.", "Dos o doble.", "Repetir o volver."], 2, 18],
+  ["¿Cuáles son las reglas para las palabras que llevan b?", ["Exhibir.", "Hervir.", "Recibir.", "Incumbir."], 2, 19],
+  ["Las dicciones terminadas en bilidad se escriben con b con excepción de:", ["Inmovilidad.", "Insaciabilidad.", "Mutabilidad.", "Apacibilidad."], 1, 20],
+  ["¿Qué palabras no llevan b?", ["Andaba.", "Estábamos.", "Íbamos.", "Estuvieron."], 3, 21],
+  ["¿Qué palabra está mal escrita?", ["Bocaza.", "Estubo.", "Sorber.", "Caber."], 1, 22],
+  ["Se escribe con b antes de las siguientes consonantes:", ["B o S.", "M o N.", "R o L.", "P o T."], 1, 23],
+  ["¿Qué palabra está mal escrita?", ["Imperativa.", "Perciva.", "Eruptiva.", "Relativa."], 1, 24],
+  ["¿Después de qué sílaba se escribe siempre con v?", ["al.", "ad.", "ar.", "as."], 1, 25],
+  ["¿Qué palabra está mal escrita?", ["Gravar.", "Nabal.", "Cavo.", "Ninguna."], 3, 26],
+  ["¿Qué palabra está mal escrita?", ["Adbervio.", "Vesubio.", "Reverbero.", "Todas las anteriores."], 0, 27],
+  ["¿Cómo se forma un diptongo?", ["La unión de una vocal fuerte con una débil.", "La unión de una vocal débil con una fuerte.", "Cuando dos vocales juntas se pronuncian en una sola emisión de voz.", "Todas las anteriores."], 2, 28],
+  ["¿Qué palabra no es un diptongo?", ["Aire.", "Peine.", "Marea.", "Poesía."], 2, 29],
+  ["¿Qué palabra no es un diptongo?", ["Naipe.", "Leal.", "Adeuda.", "Aplaudo."], 2, 30],
+  ["¿Qué palabra es triptongo?", ["Buey.", "Pleito.", "Flauta.", "Ninguna de las anteriores."], 0, 31],
+  ["Llevan h inicial todas las palabras que principian con el diptongo:", ["ua.", "iu.", "ue.", "ou."], 2, 32],
+  ["¿Qué palabra está mal escrita?", ["Holer.", "Hidro.", "Hialino.", "Todas las anteriores."], 0, 33],
+  ["¿Qué palabra está mal escrita?", ["Hosambre.", "Hovezuelo.", "Hovaro.", "Todas las anteriores."], 3, 34],
+  ["Llevan h inicial todas las voces que principian con:", ["Hidru.", "Hidre.", "Hidra.", "Ninguna de las anteriores."], 2, 35],
+  ["Deben escribirse con h inicial todas las palabras que empiezan con:", ["ie.", "ue.", "ia.", "Todas las anteriores."], 1, 36],
+  ["Se escriben con c las voces terminadas en:", ["encio.", "ancio.", "incio.", "Ninguna de las anteriores."], 0, 37],
+  ["Los diminutivos terminados en ica llevan c, con la excepción de:", ["Cuentesica.", "Partosica.", "Risica.", "Yerbesica."], 2, 38],
+  ["Se escriben con c las dicciones que terminan en:", ["icia.", "acia.", "cimiento.", "Todas las anteriores."], 3, 39],
+  ["Se escriben con s las terminaciones en:", ["irse.", "erse.", "urse.", "Todas las anteriores."], 3, 40],
+  ["¿Cuándo la letra z es reemplazada por la c?", ["Cuando la palabra singular termina en z pasa al plural.", "Cuando las palabras terminan en zas.", "Cuando se encuentran las letras a, e antes de la z.", "Ninguna de las anteriores."], 0, 41],
+  ["¿Qué palabra está mal escrita?", ["Zapa.", "Zebosa.", "Zaheir.", "Zambullir."], 1, 42],
+  ["Se escribe con z las dicciones terminadas en:", ["ozo.", "uzo.", "izo.", "ezo."], 0, 43],
+  ["Se escribe con z las dicciones terminadas en:", ["eza.", "uzo.", "soz.", "zos."], 0, 44],
+  ["¿Qué palabra está mal escrita?", ["Kilómetro.", "Quilogramo.", "Kiosco.", "Ninguna de las anteriores."], 1, 45],
+  ["Para que suene la u entre la g y las vocales e, i se le colocan dos puntos a la u. ¿Cómo se llaman esos dos puntos?", ["Apóstrofe.", "Crema o diéresis.", "Puntillas.", "Puntos ortográficos."], 1, 46],
+  ["¿Qué palabra está mal escrita?", ["Gergón.", "Geófago.", "Insigne.", "Ígneo."], 0, 47],
+  ["Se escribe con g las palabras terminadas en:", ["ai.", "gea.", "gía.", "ie."], 2, 48],
+  ["Se escribe con g los infinitivos terminados en:", ["ger y gar.", "gir y gur.", "gor y ger.", "ger y gir."], 0, 49],
+  ["¿Cuál es la excepción para las dicciones terminadas en aje?", ["Cordage.", "Enálage.", "Celage.", "Ramage."], 1, 50],
+  ["Se usa la m antes de las consonantes:", ["g y m.", "r y s.", "b y p.", "i y c."], 2, 51],
+  ["¿Qué palabra está mal escrita?", ["Imajenable.", "Enmohecer.", "Somnámbulo.", "Relámpago."], 0, 52],
+  ["¿Qué palabra está mal escrita?", ["Inmarcesible.", "Estambre.", "Iminente.", "Amparar."], 2, 53],
+  ["Se usa la n antes de la:", ["s.", "i.", "v.", "r."], 2, 54],
+  ["¿Qué palabra está mal escrita?", ["Trasatlántico.", "Trascendencia.", "Trasnochar.", "Circunstancia."], 1, 55],
+  ["¿Qué es el acento ortográfico o tilde?", ["Es un apóstrofe inclinado de derecha a izquierda.", "Es un apóstrofe inclinado de izquierda a derecha.", "Es una virgulilla o rayita que se escribe inclinada de izquierda a derecha.", "Es una virgulilla o rayita que se escribe inclinada de derecha a izquierda."], 3, 56],
+  ["¿Qué palabras llevan siempre acento enfático?", ["Las gramaticales.", "Los adverbios.", "Las interjecciones.", "Los pronombres."], 2, 57],
+  ["¿Cómo se clasifican las palabras según el acento?", ["Agudas, llanas y esdrújulas.", "Prosódicas, enfáticas y ortográficas.", "Tilde, virguilla y diacrítico.", "Verbigracia, polisílabas y bisílabas."], 0, 58],
+  ["¿Las palabras agudas en qué sílaba llevan acento?", ["En la penúltima sílaba.", "En la antepenúltima sílaba.", "En la última sílaba.", "En la primera sílaba."], 2, 59],
+  ["¿Las palabras llanas en qué sílaba llevan acento?", ["En la penúltima sílaba.", "En la última sílaba.", "En la antepenúltima sílaba.", "En la primera sílaba."], 0, 60],
+  ["¿Las palabras esdrújulas en qué sílaba llevan acento?", ["En la penúltima sílaba.", "En la última sílaba.", "En la antepenúltima sílaba.", "En la primera sílaba."], 2, 61],
+  ["¿Cuál es una palabra aguda?", ["García.", "Máquina.", "Volátil.", "Expresión."], 3, 62],
+  ["¿Cuál es una palabra llana?", ["Política.", "Cárcel.", "Violín.", "Telégrafo."], 1, 63],
+  ["¿Cuál es una palabra esdrújula?", ["Aritmética.", "Partir.", "Carácter.", "Verosímil."], 0, 64],
+  ["¿Para qué se usa la coma?", ["Para hacer un alto.", "Para cambiar una frase por otra.", "Para hacer una breve pausa.", "Para alertar al lector."], 2, 65],
+  ["Se suprime la coma usando las conjunciones:", ["que, como, pero.", "y, ni, o.", "e, u, ah.", "ya, que, ya que."], 1, 66],
+  ["¿Qué indica el punto y coma?", ["Una pausa mayor que los dos puntos, pero menor que el punto.", "Una pausa menor que los dos puntos, pero mayor que el punto.", "Una pausa mayor que el punto, pero menor que la coma.", "Una pausa menor que el punto, pero mayor que la coma."], 3, 67],
+  ["Se ponen dos puntos después de las expresiones que sirven para empezar:", ["Cartas.", "Comunicaciones.", "Ninguna de las anteriores.", "Todas las anteriores."], 3, 68],
+  ["Se emplean dos puntos antes de las palabras o frases que pertenecen a:", ["Otro párrafo.", "Otro autor.", "Otro texto.", "Otro léxico."], 1, 69],
+  ["¿Qué indica el punto final?", ["Una pausa más corta que la del punto seguido y el punto y coma.", "Una pausa más larga que la del punto seguido y el punto y coma.", "Una pausa más larga que la de la coma y el punto y coma.", "Una pausa más corta que la de la coma y el punto y coma."], 1, 70],
+  ["¿Cuáles son las tres clases de puntos?", ["Punto, dos puntos y punto final.", "Punto y seguido, punto final y dos puntos.", "Punto y coma, dos puntos y punto.", "Punto y seguido, punto aparte y punto final."], 3, 71],
+  ["¿Cuántos puntos suspensivos se pueden emplear en un escrito?", ["Dos o cuatro.", "Tres o cinco.", "Tres o seis.", "Dos o tres."], 1, 72],
+  ["Los paréntesis se usan en:", ["Escritos y operaciones algebraicas.", "Solo en escritos.", "Solo en operaciones algebraicas.", "Ninguno de los anteriores."], 0, 73],
+  ["¿Para qué se emplean las comillas?", ["Para resaltar una frase o párrafo de las demás.", "Para indicar que la palabra que está entre ellas pertenece a otro autor.", "Para separar palabras que no tienen relación.", "Para que el lector reflexione sobre las frases o párrafos escritos."], 1, 74],
+  ["¿Para qué se emplean las comillas?", ["Para evitar el choque de dos ideas o pensamientos.", "Para resaltar palabras.", "Para evitar la repetición de una misma palabra.", "Para separar palabras."], 1, 75],
+  ["¿Quién escribió el ensayo Tres Héroes?", ["José Martí.", "José Martínez.", "Josué Martí.", "Josué Martínez."], 0, 76],
+  ["¿Quién es conocido por sostener la tesis de que el paraíso terrenal al que se refiere la Biblia está ubicado en Sorata?", ["Ricardo Jaime Freyre.", "Gabriel René Moreno.", "Emeterio Villamil de Rada.", "Jenny Moix Querató."], 2, 77],
+  ["¿Cuál es la novela boliviana más importante del siglo XIX, escrita por Nataniel Aguirre?", ["Juan de la Rosa.", "Memorias de un soldado de la Independencia.", "La hora del peligro.", "Unitarismo y federalismo."], 0, 78],
+  ["¿Cuándo un predicado es verbal?", ["Cuando todos los verbos pueden usarse impersonalmente.", "Cuando la acción del verbo no pasa a ningún objeto.", "Cuando la acción del verbo se convierte en complemento directo.", "Cuando su núcleo es un verbo no copulativo conjugado."], 3, 79],
+  ["Las oraciones con predicativo verbal se clasifican en:", ["Oraciones activas y pasivas.", "Oraciones reflexivas y recíprocas.", "Oraciones intransitivas e impersonales.", "Oraciones seudorreflejas y transitivas."], 0, 80],
+  ["¿Qué es el queísmo y dequeísmo?", ["Son las equivocaciones de un acto escrito.", "Son dos incorrecciones en la construcción de enunciados.", "Son sílabas que no llevan tilde.", "Son principios que se imponen para el desarrollo de una actividad."], 1, 81],
+  ["Para saber si un verbo debe llevar o no la preposición \"de\", se debe:", ["Indicar su origen, procedencia y destino.", "Cambiar de sustantivo a plural.", "Transformar la expresión afirmativa en interrogante.", "Colocar al sujeto como parte de la oración."], 2, 82],
+  ["¿Quién escribió el poema Los Primeros Pasos del Olvido?", ["Calderón de la Barca.", "Roberto Echazú.", "Francisco de Quevedo.", "Luis de Góngora."], 1, 83],
+  ["¿Quién escribió el poema Infancia?", ["Francisco de Terrazas.", "Pablo Boullosa.", "Mónica Velásquez.", "Edmundo Camargo."], 3, 84],
+  ["¿Indique cuáles son novelas bolivianas?", ["Juan de la Rosa, Raza de Bronce, Los Deshabitados.", "Orgullo y prejuicio, La tierra baldía, Moby Dick.", "Sangre de campeón, La ventana alta, Lo que el viento se llevó.", "Un grito desesperado, Juventud en éxtasis, Volar sobre el pantano."], 0, 85],
+  ["¿Quién escribió la novela Juan de la Rosa?", ["Julio Verne.", "Paulo Coelho.", "Nataniel Aguirre.", "Gabriel García Márquez."], 2, 86],
+  ["¿Quién escribió la novela Raza de Bronce?", ["Jorge Luis Borges.", "Pablo Neruda.", "Julio Cortázar.", "Alcides Arguedas."], 3, 87],
+  ["¿Quién escribió la novela Los Deshabitados?", ["Isabel Allende.", "Mario Vargas Llosa.", "Marcelo Quiroga Santa Cruz.", "Miguel de Cervantes."], 2, 88],
+  ["¿En qué año fue publicada la novela Juan de la Rosa?", ["1985.", "1885.", "1895.", "1785."], 1, 89],
+  ["¿De qué género es la Crónica?", ["Narrativo.", "Dramático.", "Narrativo-Histórico.", "Histórico."], 2, 90],
+  ["¿Qué significa la palabra etimológica Cronos?", ["Pausa.", "Verso.", "Espacio.", "Tiempo."], 3, 91],
+  ["¿Las primeras obras de crónicas a qué tiempo se remontan?", ["La Edad Media.", "Los primeros tiempos del cristianismo.", "El tiempo Neolítico.", "Tiempo renacentista."], 1, 92],
+  ["¿Quién fue el principal cronista de la América naciente?", ["Fray Bartolomé Mitre.", "Fray Luis de León.", "Fray Bartolomé de las Casas.", "Fray Tuck."], 2, 93],
+  ["¿Quién es el autor de la poesía Al oído del Cristo?", ["Octavio Paz.", "Gabriela Mistral.", "Oliverio Girondo.", "Nicanor Parra."], 1, 94],
+  ["¿Quién es el autor de la novela Felipe Delgado?", ["Ramón Rocha Monroy.", "Mario Vargas Llosa.", "Alfredo Flores.", "Jaime Sáenz."], 0, 95],
+  ["¿Quién es el autor de la novela Jonás y la Ballena Rosada?", ["Nataniel Aguirre.", "Wolfango Montes.", "Bartolomé Arzans de Orsúa y Vela.", "Arturo Borda."], 3, 96],
+  ["¿Quién es el autor de la novela La Chaskañawi?", ["Óscar Cerruto.", "Jorge Suárez.", "Carlos Medinaceli.", "Wolfango Montes."], 2, 97],
+  ["Según Jaime Herrera, autor de textos sobre escritura y redacción, ¿por qué se escribe un ensayo?", ["Porque es necesario practicar antes de publicar.", "Porque el ensayo permite corregir los errores.", "Porque existe una necesidad de comunicar una idea.", "Ninguna de las anteriores."], 2, 98],
+  ["¿Cuál es la estructura de un ensayo?", ["Introducción, desarrollo, conclusión.", "Antecedentes, introducción, desarrollo, conclusión.", "Antecedentes, introducción, desarrollo, conclusión, recomendación.", "Introducción, desarrollo, conclusión, recomendación."], 0, 99],
+  ["El escritor Juan Rulfo es autor de la novela considerada por la crítica como una obra maestra de la literatura en español:", ["Pedro Páramo.", "El llano en llamas.", "El gallo de oro.", "La Odisea."], 0, 101],
+  ["Las funciones del lenguaje son:", ["Denotativa o referencial, emotiva o expresiva, conativa o apelativa y poética o estética.", "Emotiva o expresiva, denotativa o referencial y conativa o apelativa.", "Emotiva o expresiva, conativa o apelativa, denotativa o referencial y explicativa.", "Estética, referencial, expresiva, apelativa y cuantitativa."], 0, 102],
+  ["La siguiente expresión: \"el noticiero ya empezó\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 0, 103],
+  ["La siguiente expresión: \"Oye, oye, espera un momento\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 2, 104],
+  ["La siguiente expresión: \"qué desastre produjeron las lluvias\" corresponde a la función:", ["Denotativa o referencial.", "Emotiva o expresiva.", "Conativa o apelativa.", "Poética o estética."], 1, 105],
+  ["La coma se usa antes de las conjunciones adversativas:", ["mas, pero, aunque.", "y, o.", "luego, sí que.", "porque, ya que."], 0, 106],
+  ["Dentro de las novelas de terror y misterio, Frankenstein fue escrito por:", ["Vargas Llosa.", "Mary Shelley.", "Mark Twain.", "Charles Dickens."], 1, 107],
+  ["Los géneros narrativos son:", ["La épica, la novela, el cuento y el drama.", "La épica, la novela y el cuento.", "La épica, la novela, el cuento y la narración original.", "La épica, la novela, el cuento y la narración ampliada."], 1, 108],
+  ["Los elementos que intervienen en la narración son:", ["Narrador, acción, los personajes y el interés.", "Narrador, los personajes, el interés y la acción.", "Narrador, los personajes, el interés y la acción.", "Los personajes, lugar, tiempo y la acción."], 3, 109],
+  ["Dentro de las figuras de dicción, la repetición comprende:", ["Anáfora, reduplicación, polisíndeton y concatenación.", "Anáfora, reduplicación, polisíndeton y aliteración.", "El epíteto, anáfora, reduplicación, polisíndeton y aliteración.", "Todas."], 0, 110],
+  ["Dentro de las figuras de dicción, la combinación comprende:", ["Onomatopeya, aliteración y similicadencia.", "Elipsis, asíndeton y adjunción.", "Epíteto.", "Polisíndeton, concatenación, conversión y anáfora."], 1, 111],
+  ["Dentro de las figuras de dicción, el asíndeton se relaciona con:", ["Repetir al principio de la frase la misma palabra.", "Suprime conjunciones copulativas.", "Suprime verbos.", "Utiliza la semejanza fonética entre las palabras."], 1, 112],
+  ["Recordemos que la oración es la palabra o el conjunto de palabras con unidad de sentido y autonomía sintáctica, existiendo dos clases: oraciones simples y compuestas. Dicho esto, identifica lo siguiente: \"El nexo puede ser un signo, una letra o una palabra\".", ["Oración compuesta.", "Oración simple.", "Ninguna.", "Ambas."], 0, 113],
+  ["Identifica qué clase de oración es la siguiente: \"En el corazón tenía la espina de una pasión\".", ["Oración compuesta.", "Oración simple.", "Ninguna.", "Ambas."], 1, 114],
+  ["Dentro de la poesía boliviana, José Domingo Cortés en su antología América Latina es el primero que incorpora a tres poetas bolivianos:", ["Manuel José Cortez, Ricardo José Bustamante y Mariano Ramallo.", "Jesús Lara, Juan Wallparrimachi y Alcides Arguedas.", "Ninguno.", "Ambos."], 0, 115],
+  ["Los principales representantes del movimiento modernismo en Bolivia fueron:", ["Franz Tamayo.", "Jaime Freyre.", "Gregorio Reynolds.", "Todos."], 3, 116],
+  ["Las oraciones compuestas coordinadas reciben el nombre del nexo que las une y pueden ser:", ["Copulativas (o), disyuntivas (y), adversativas (de modo), consecutivas (pero).", "Copulativas (y), disyuntivas (o), adversativas (pero), consecutivas (de modo).", "Copulativas (y), disyuntivas (de modo), adversativas (pero), consecutivas (o).", "Copulativas (de modo), disyuntivas (o), adversativas (pero), consecutivas (y)."], 1, 117],
+  ["Las oraciones que expresan opción entre dos o más posibilidades se denominan:", ["Copulativa.", "Disyuntiva.", "Consecutiva.", "Adversativa."], 1, 118],
+  ["Considerada como aquella ciencia que estudia el sistema de leyes, normas y reglas que rigen la correcta utilización de un idioma en particular:", ["Lingüística.", "Gramática.", "Sintaxis.", "Metalingüística."], 1, 119],
+  ["Ciencia que estudia la significación de las palabras, relacionadas con otras, investigando los cambios de significado y sus causas:", ["Semántica.", "Habla.", "Etimología.", "Ortografía."], 0, 120],
+  ["Acto individual del ejercicio del lenguaje en forma de mensaje realizado por una persona:", ["Lenguaje.", "Lengua.", "Habla.", "Dialecto."], 2, 121],
+  ["Es el conjunto sistemático de signos que permite la comunicación verbal:", ["Lenguaje.", "Lengua.", "Habla.", "Dialecto."], 1, 122],
+  ["Parte de la gramática que enseña a escribir correctamente las palabras de una lengua o idioma:", ["Ortografía.", "Semántica.", "Fonética.", "Etimología."], 0, 123],
+  ["Las palabras se clasifican por su origen, acentuación y su significado. Por su significado se clasifican en:", ["Sinónimas, antónimas, homónimas y parónimas.", "Primitivas, derivadas y compuestas.", "Agudas, graves o llanas, esdrújulas y sobreesdrújulas.", "Diptongos, hiatos y triptongos."], 0, 124],
+  ["Por su acentuación las palabras se clasifican en:", ["Sinónimas, antónimas, homónimas y parónimas.", "Primitivas, derivadas y compuestas.", "Agudas, graves o llanas, esdrújulas y sobreesdrújulas.", "Diptongos, hiatos y triptongos."], 2, 125],
+  ["Por su acentuación, las palabras acentuadas como \"canción, compás\" corresponden a:", ["Agudas.", "Graves o llanas.", "Esdrújulas.", "Sobresdrújulas."], 0, 126],
+  ["Por su acentuación, las palabras acentuadas como \"fácilmente, hábilmente\" corresponden a:", ["Agudas.", "Graves o llanas.", "Esdrújulas.", "Sobresdrújulas."], 3, 127],
+  ["Las palabras que tienen significado de contraste u oposición como \"llenar - vaciar\" se denominan:", ["Sinónimas.", "Antónimas.", "Parónimas.", "Homónimas."], 1, 128],
+  ["Las palabras que tienen parecida escritura y pronunciación, pero diferente significado (abrazar-abrasar) son:", ["Sinónimas.", "Antónimas.", "Parónimas.", "Homónimas."], 2, 129],
+  ["El acento es la mayor fuerza de voz con la que leemos una sílaba en una palabra, que puede ser: prosódico, ortográfico y diacrítico. Este último se ocupa de:", ["Todas las palabras sin tilde (perro).", "Denotar una rayita oblicua (práctico).", "Permitir distinguir el significado de dos palabras (él - el).", "Todos o ninguno."], 2, 130],
+  ["Los complementos de una oración pueden ser: directo, indirecto, circunstancial, de régimen verbal, complemento de agente y complemento predicativo. Ej. \"La carta fue escrita por la secretaria\". Dicha oración corresponde a:", ["Complemento directo.", "Complemento indirecto.", "Complemento circunstancial.", "Complemento predicativo."], 3, 131],
+  ["Seleccione la palabra correcta.", ["Conciente.", "Consciente.", "Consiente.", "Ninguna de las anteriores."], 1, 132],
+  ["Seleccione la palabra correcta.", ["Amanezer.", "Amaneser.", "Amanecer.", "Ninguna de las anteriores."], 2, 133],
+  ["Seleccione la palabra correcta.", ["Oviediencia.", "Obediencia.", "Obediensia.", "Oviedensia."], 1, 134],
+  ["Seleccione la palabra correcta.", ["Sacerdotiza.", "Saserdotisa.", "Sacerdotisa.", "Sazerdotiza."], 2, 135],
+  ["Seleccione la respuesta correcta.", ["Ambar.", "Hámbar.", "Anvar.", "Ámbar."], 3, 136],
+  ["Seleccione la respuesta correcta.", ["Suseción.", "Sucesión.", "Sucesión.", "Zucesión."], 1, 137],
+  ["Escoja la letra que corresponda en la siguiente palabra: prodi_io.", ["g.", "j.", "gu.", "h."], 0, 138],
+  ["Escoja la opción correcta para completar la siguiente oración: \"de_epente e_clamo: ¡Dile que se va_a!\"", ["rr, x, ll.", "r, s, y.", "r, x, y.", "r, x, ll."], 2, 139],
+  ["Escoja la opción correcta para completar la siguiente oración: \"mira qué exhi_ición están ofre_iendo los pa_asos\".", ["v, c, y.", "b, s, y.", "b, c, y.", "v, z, ll."], 2, 140],
+  ["¿En qué año se dio el boom literario latinoamericano en Bolivia?", ["1990.", "1800.", "1900.", "1890."], 0, 141],
+  ["¿Cuáles son los verboides?", ["Infinitivo.", "Participio.", "Gerundio.", "Todos los anteriores."], 3, 142],
+  ["Los verboides participios terminan en:", ["ado o ido.", "ando o endo.", "ar, er o ir.", "Ninguna de las anteriores."], 0, 143],
+  ["Los verboides gerundios terminan en:", ["ado o ido.", "ando o endo.", "ar, er o ir.", "Ninguna de las anteriores."], 1, 144],
+  ["Los verboides infinitivos terminan en:", ["ado o ido.", "ar o endo.", "ar, er o ir.", "Ninguna de las anteriores."], 2, 145],
+  ["Los verboides participios terminan en:", ["edo o ido.", "ar o endo.", "ar, er o ir.", "Ninguna de las anteriores."], 0, 146],
+  ["¿Cómo se clasifican los tipos de párrafos?", ["Introducción, desarrollo, conclusión y resumen.", "Introducción, cuerpo, conclusión y fin.", "Inicio, cuerpo, fin.", "Ninguno de los anteriores."], 0, 147],
+  ["El adjetivo es la palabra que acompaña al sustantivo para calificarlo o determinarlo y delimitar su extensión. Se clasifica en dos grandes grupos:", ["Calificativo y determinativo.", "Comparativo y superlativo.", "Demostrativo y posesivo.", "Gentilicios y ordinales."], 0, 148],
+  ["Los adjetivos calificativos son: positivo, comparativo y superlativo. Ej. \"La hermosísima María\" corresponde a:", ["Positiva.", "Comparativa.", "Superlativa.", "Ninguno."], 2, 149],
+  ["Dentro de la conjugación de los verbos irregulares (ir), ¿a qué tiempo corresponde \"fui\"?", ["Presente.", "Pretérito perfecto simple.", "Futuro.", "Pluscuamperfecto."], 1, 150],
+  ["¿Cuál de estas conjugaciones corresponde al futuro perfecto?", ["Jugué.", "Haya jugado.", "Hubiere jugado.", "Jugaremos."], 2, 151],
+  ["La conjugación pretérita perfecta anterior es de la siguiente manera:", ["Hube jugado.", "He jugado.", "Habré jugado.", "Jugué."], 0, 152],
+  ["Es la lengua de una persona en particular, su propia manera de hablar, lo que se denomina idiosincrasia lingüística:", ["Dialecto.", "Idiolecto.", "Idioma.", "Habla."], 1, 153],
+  ["Disciplina gramatical que se refiere a las relaciones entre palabras dentro de un enunciado lingüístico:", ["Gramática.", "Sintaxis.", "Morfología.", "Sintagma."], 1, 154],
+  ["Considerada como aquella ciencia que estudia el sistema de leyes, normas y reglas que rigen la utilización del idioma en particular, aquella parte que estudia el hablar y escribir correctamente una lengua:", ["Gramática.", "Sintaxis.", "Morfología.", "Sintagma."], 0, 155],
+  ["Escoja la respuesta correcta (uso del acento diacrítico): \"La raqueta es para ___\"", ["Mi.", "Mí.", "Ambos.", "Ninguno."], 1, 156],
+  ["Me acercaré a comprar:", ["el.", "él.", "Ninguno."], 1, 157],
+  ["Dijo que llegaría a la fiesta:", ["Tu.", "tú.", "tu.", "Ninguno."], 1, 158],
+  ["He comprobado que no estuvo en clases.", ["E.", "él.", "EL.", "Ninguno."], 1, 159],
+  ["No invertiré:", ["Mas.", "más.", "mas.", "MAS."], 1, 160],
+  ["Aparente contrasentido que contiene una idea verdadera. ¿Cuál es la figura literaria que presenta esta definición?", ["Oxímoron.", "Simetría.", "Metáfora.", "Perífrasis."], 0, 161],
+  ["Repetición a distancia de un elemento al principio y fin de un verso. ¿Cuál es esta figura?", ["Oxímoron.", "Metonimia.", "Elipsis.", "Panadiplosis."], 3, 162],
+  ["En este verso, ¿qué figura encuentras? \"La campanada de maitines\"", ["Sinestesia.", "Hipérbaton.", "Anáfora.", "Reduplicación."], 0, 163],
+  ["La figura literaria apóstrofe, ¿a cuál de los tres niveles corresponde?", ["Nivel fonético.", "Nivel morfosintáctico.", "Nivel léxico-semántico.", "Ninguno."], 2, 164],
+  ["Elige la respuesta correcta.", ["Me gusta mucho mas visitar la Feria de Sevilla en el mes de abril.", "Me gusta mucho mas visitar la Feria de Sevilla en el mes de abril.", "Me gusta mucho mas visitar la Feria de Sevilla en el mes de abril.", "Me gusta mucho más visitar la feria de Sevilla en el mes de abril."], 3, 165],
+  ["Elige la respuesta correcta.", ["El problema para mí no son las críticas acerbas que me han dirigido.", "El problema para mi no son las críticas acerbas que me han dirigido.", "El problema para mi no son las críticas acerbas que me han dirigido.", "Él problema para mí no son las críticas acervas que me han dirigido."], 0, 166],
+  ["Elige la respuesta correcta.", ["Si se dice sí, a la primera opción márcala con una cruz.", "Si se dice si a la primera opción márcala con una cruz.", "Si se dice sí a la primera opción márcala con una cruz.", "Si se dice si a la primera opción márcala con una cruz."], 0, 167],
+  ["Elige la respuesta correcta.", ["Tú has sido elegida como la actriz del año por una revista estadounidense.", "Tu has sido elegida como la actriz del año por una revista estadounidense.", "Tú has sido elegida como la actriz del año por una revista estadounidense.", "Tú as sido elegida como la actriz del año por una revista estadounidense."], 0, 168],
+  ["Elige la respuesta correcta.", ["El amigo de las palabras es una publicación dedicada a la prós a poética.", "El amigo de las palabras es una publicación dedicada a la prosa poetica.", "El amigo de las palabras es una publicación dedicada a la prosa poética.", "El amigo de las palabras es una publicación dedicada a la prosa poética."], 3, 169],
+  ["Elige la respuesta correcta.", ["El historial de Hernesto era impresionante.", "El historial de Emesto era impresionante.", "El historial de Ernesto era impresionante.", "El historial de Ernesto era impresionante."], 3, 170],
+  ["Elige la respuesta correcta.", ["El té verde contiene compuestos antioxidantes beneficiosos.", "El té verde contiene compuestos antioxidantes beneficiosos.", "El te verde contiene compuestos antioxidantes beneficiosos.", "El Té verde contiene compuestos antioxidantes beneficiosos."], 0, 171],
+  ["Elige la respuesta correcta.", ["Espero que el sueldo de para hacerle un regalo a mi abuela.", "Espero que el sueldo de para hacerle un regalo a mi abuela.", "Espero que el sueldo dé para hacerle un regalo a mi abuela.", "Espero que él sueldo dé para hacerle un regalo a mi abuela."], 2, 173],
+  ["Elige la respuesta correcta.", ["Yo no sé nada del alboroto en el salón de té.", "Yo no se nada del alboroto en el salón de te.", "Yo no se nada del alboroto en el salón de te.", "Yo no se nada del alboroto en el salón de té."], 0, 174],
+  ["Elige la respuesta correcta.", ["Esta vez si lo habían detenido con pruebas culpatorias.", "Esta vez si lo habían detenido con pruebas culpatorias.", "Esta vez sí lo habían detenido con pruebas culpatorias.", "Esta vez si lo habían detenido con pruebas culpatorias."], 2, 175],
+  ["Elige la respuesta correcta.", ["Voy a la playa, mas no podré acompañarte en el bordafuera.", "Voy a la playa, mas no podré acompañarte en el fueraborda.", "Voy a la playa mas no podré acompañarte en el fuera borda.", "Voy a la playa, mas no podré acompañarte en el fueraborda."], 3, 176],
+  ["Elige la respuesta correcta.", ["A pesar de la huelga, el herniando sufrió la operación de hernia.", "A pesar de la huelga el heniando sufrió la operación de ernia.", "A pesar de la huelga, el herniado sufrió la operación de hernia.", "A pesar de la huelga, el hemiando sufrió la operación de ernia."], 2, 177],
+  ["Elige la respuesta correcta.", ["La hermana de Holga se comió una torta.", "La hermana de Olga, sé comió una torta.", "La hermana de Olga se comió una torta.", "La hermana de Olga sé comió una torta."], 2, 178],
+  ["Elige la respuesta correcta.", ["La frase \"solo sé qué no sé nada\" es atribuida a Sócrates.", "La frase \"solo se que no se nada\", es atribuida a Sócrates.", "La frase \"solo sé que no sé nada\", es atribuida a Sócrates.", "La frase \"solo sé que no se nada\", es atribuida a Sócrates."], 2, 179],
+  ["Elige la respuesta correcta.", ["Pese a quien pese, el no quiere dar su brazo a torcer.", "Pese a quien pese, el no quiere dar su brazo a torser.", "Pese a quien pese, el no quiere dar su brazo a torcer.", "Pese a quien pese, él no quiere dar su brazo a torcer."], 3, 180],
+  ["La primera y más importante de todas las novelas de caballería escritas en castellano fue:", ["\"La Celestina\".", "\"El Poema de Mío Cid\".", "\"Amadís de Gaula\".", "\"El libro del buen amor\"."], 2, 181],
+  ["\"El Poema de Mío Cid\" está dividido en tres cantares, uno de los siguientes no corresponde a la citada obra. ¿Cuál?", ["Cantar de las bodas de las hijas del Cid.", "Cantar de la afrenta de Corpes.", "Cantar del destierro.", "Cantar de las mocedades del Cid."], 3, 182],
+  ["\"La Chaskañawi\" fue escrito por:", ["Gonzalo Lema.", "Carlos Medinaceli.", "Antonio Díaz Villamil.", "Lara."], 1, 183],
+  ["Los precursores del romanticismo que se extendió por Europa y América fueron:", ["Rousseau-Goethe.", "Goethe-George Eliot.", "Rousseau-Jorge Eliot.", "Ninguno."], 0, 184],
+  ["De acuerdo a las reglas gramaticales, sinónimo de todavía es: (Ejemplo: todavía te quiero)", ["Aun.", "Aún.", "Ambos.", "Ninguno."], 1, 185],
+  ["Sinónimo de hasta es: (Ejemplo: \"hasta te quiero\")", ["Aun.", "Aún.", "Ambos.", "Ninguno."], 0, 186],
+  ["Elija la respuesta correcta:", ["¿Por qué Roberto quiere renunciar a su trabajo?", "¿Porqué Roberto quiere renunciar a su trabajo?", "¿Porque Roberto quiere renunciar a su trabajo?", "¿Por que Roberto quiere renunciar a su trabajo?"], 0, 187],
+  ["¿Cuál de estas oraciones expresa la causa, la razón y el motivo?", ["Jamás entenderé los porqués de su conducta.", "Lima quiere renunciar porque al dueño del periódico no le importan las noticias, sino el dinero.", "La guerra existe desde siempre; las causas por que hay grupos humanos beligerantes son complejas.", "Me pregunto por qué hay guerra."], 1, 188],
+  ["Elige la respuesta condicional:", ["Si no cumples con tu trabajo, te despedirán.", "Sino cumples con tu trabajo te despedirán.", "Te despedirán sino cumples con tu trabajo.", "Ninguno."], 0, 189],
+  ["Lee cuidadosamente cada uno de los siguientes enunciados y elige el que expresa una idea de obligación.", ["Los profesores deben saber más que los alumnos.", "Mi hermana debe de aparecer en cualquier momento; acostumbra a ser puntual.", "La hija de Ana debe de estar en el zoológico.", "Ninguno."], 0, 190],
+  ["La personificación es un recurso que consiste en enunciar la realidad como si estuviese viva y animada. Dicho esto, ¿cuál de estos enunciados no corresponde a esta figura literaria?", ["La lluvia cae con fuerza contra mi ventana para recordarme que estoy sola.", "La puerta cerrada y aquel silencio burlaron la necesidad que Román tenía de estar con Ximena.", "La curiosidad mató a las esposas de Barba Azul.", "Compré un Picazo."], 3, 191],
+  ["¿Cuál de estos enunciados corresponde a esta figura literaria personificación?", ["La plaza de toros emocionada ovacionó al matador.", "Cuando Alejandra se fue a vivir a Colombia con su tía ya estaba enferma.", "Ninguna de las anteriores.", "Todas las anteriores."], 0, 192],
+  ["Se dice que la lengua tiene doble articulación. ¿Cuáles son?", ["Significado - significado.", "Morfemas - fonemas.", "Expresión - contenido.", "Significante - sonido."], 1, 193],
+  ["Una de las figuras cumbres de la literatura boliviana fue Nataniel Aguirre. ¿Cuál de estas obras no corresponde al escritor mencionado?", ["\"Juan de la Rosa\".", "\"Biografía de Simón Bolívar\".", "\"La Guerra del Pacífico\".", "\"Represalia de una mujer\"."], 2, 194],
+  ["Arguedas, Alcides (1879-1946). ¿Cuál de estas obras no corresponde al escritor mencionado?", ["La Raza de Bronce.", "Vida Criolla.", "Pueblo Enfermo.", "Arica."], 3, 195],
+  ["Antonio Díaz Villamil escribió una obra de teatro en 1945 que obtuvo el Primer Premio en La Paz por el interés histórico del tema. Esta es:", ["\"Plácido Yáñez\".", "\"La Hoguera\".", "\"La Niña de sus Ojos\".", "Ninguna."], 1, 196],
+  ["Lara, Jesús (Muela, Cochabamba, 1909-1980). Narrador, poeta, periodista e investigador de la cultura quechua. ¿Cuál de estos le corresponde?", ["Repete (1937), Sujnapura (1971), Tragedia del fin de Atahuallpa (1957).", "Arawiy arawiku (1927), Viaje a inkallajta (1927), Yanakuna (1957).", "Surumi (1943), Pauqarwara (1947), La poesía quechua (1947).", "Todos."], 3, 197],
+  ["¿Cómo se escribe correctamente la siguiente palabra?", ["Perspectiba isométrica.", "Perspectiva isométrica.", "Perspectiba hisométrica.", "Perspectiva hisométrica."], 1, 198],
+  ["¿Cómo se escribe correctamente la siguiente palabra?", ["Ecstasis.", "Éxtacis.", "Éxtasis.", "Ecstacis."], 2, 199],
+  ["¿Cómo se escribe correctamente la siguiente palabra?", ["Extracción.", "Extración.", "Escrracción.", "Extraxión."], 0, 200]
+];
+
+function findBySeq(seq) {
+  var i = seq - 1;
+  if (i < 0 || i >= questions.length) return null;
+  var q = questions[i];
+  return { seq: seq, doc: q[3] !== undefined ? q[3] : null, texto: q[0], opciones: q[1], correcta: ['A','B','C','D'][q[2]] + ' — ' + q[1][q[2]] };
+}
+function findByDoc(doc) {
+  for (var i = 0; i < questions.length; i++) if (questions[i][3] === doc) return findBySeq(i + 1);
+  return null;
+}
+window.findBySeq = findBySeq;
+window.findByDoc = findByDoc;
+
+var pool = [];
+var examHistory = [];
+var seenEver = {};
+var currentQuestions = [];
+var timeLeft = TIME_MINUTES * 60;
+var timerInterval = null;
+var examSubmitted = false;
+var attemptNumber = 0;
+
+var KEY_HISTORY = 'lit2024_v1_history';
+var KEY_POOL = 'lit2024_v1_pool';
+var KEY_SEEN = 'lit2024_v1_seen';
+
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function makeRange(n) { var r = []; for (var i = 0; i < n; i++) r.push(i); return r; }
+function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+function saveState() {
+  try {
+    localStorage.setItem(KEY_HISTORY, JSON.stringify(examHistory));
+    localStorage.setItem(KEY_POOL, JSON.stringify(pool));
+    var seenArr = [];
+    for (var k in seenEver) if (seenEver[k]) seenArr.push(parseInt(k, 10));
+    localStorage.setItem(KEY_SEEN, JSON.stringify(seenArr));
+  } catch (e) {}
+}
+function loadState() {
+  try {
+    var h = localStorage.getItem(KEY_HISTORY);
+    if (h) { examHistory = JSON.parse(h); if (!Array.isArray(examHistory)) examHistory = []; }
+    attemptNumber = examHistory.length;
+    var p = localStorage.getItem(KEY_POOL);
+    if (p) { pool = JSON.parse(p); if (!Array.isArray(pool)) pool = []; }
+    else { pool = shuffle(makeRange(questions.length)); }
+    var s = localStorage.getItem(KEY_SEEN);
+    seenEver = {};
+    if (s) {
+      var arr = JSON.parse(s);
+      if (Array.isArray(arr)) for (var i = 0; i < arr.length; i++) seenEver[arr[i]] = true;
+    }
+  } catch (e) {
+    pool = shuffle(makeRange(questions.length));
+    examHistory = []; seenEver = {}; attemptNumber = 0;
+  }
+}
+
+function pickQuestions(n) {
+  var picked = [], inExam = {}, safety = 0;
+  while (picked.length < n && safety < 10000) {
+    safety++;
+    if (pool.length === 0) {
+      var remaining = [];
+      for (var i = 0; i < questions.length; i++) if (!inExam[i]) remaining.push(i);
+      if (remaining.length === 0) break;
+      pool = shuffle(remaining);
+    }
+    var idx = pool.shift();
+    if (typeof idx !== 'number' || isNaN(idx) || idx < 0 || idx >= questions.length) continue;
+    if (inExam[idx]) continue;
+    inExam[idx] = true;
+    picked.push(idx);
+  }
+  return picked;
+}
+
+function updateTimer() {
+  var m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+  document.getElementById('timer').textContent = 'Tiempo restante: ' + pad2(m) + ':' + pad2(s);
+}
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  timeLeft = TIME_MINUTES * 60;
+  updateTimer();
+  timerInterval = setInterval(function() {
+    timeLeft--;
+    updateTimer();
+    if (timeLeft <= 0) { clearInterval(timerInterval); submitExam(true); }
+  }, 1000);
+}
+
+function renderInfo() {
+  var total = questions.length, seen = 0;
+  for (var k in seenEver) if (seenEver[k]) seen++;
+  var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
+  document.getElementById('attempt-info').textContent =
+    'Intento #' + (attemptNumber + 1) + ' · Banco: ' + total + ' preguntas' +
+    ' · ' + QUESTIONS_PER_EXAM + ' por examen · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
+}
+
+function renderExam() {
+  if (timerInterval) clearInterval(timerInterval);
+  examSubmitted = false;
+  document.getElementById('result').innerHTML = '';
+  document.getElementById('submitBtn').disabled = false;
+
+  var picked = pickQuestions(QUESTIONS_PER_EXAM);
+  for (var i = 0; i < picked.length; i++) seenEver[picked[i]] = true;
+
+  var tieBreakers = ["todas las anteriores", "todos los anteriores", "ninguna de las anteriores", "ninguno de los anteriores", "ninguna de las opciones anteriores"];
+
+  currentQuestions = [];
+  for (var j = 0; j < picked.length; j++) {
+    var q = questions[picked[j]];
+    if (!q) continue;
+    var correctText = q[1][q[2]];
+    var seq = picked[j] + 1;
+    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;
+    var normales = [], finales = [];
+    for (var o = 0; o < q[1].length; o++) {
+      var txt = q[1][o].toLowerCase(), esFinal = false;
+      for (var t = 0; t < tieBreakers.length; t++) if (txt.indexOf(tieBreakers[t]) !== -1) { esFinal = true; break; }
+      if (esFinal) finales.push(q[1][o]); else normales.push(q[1][o]);
+    }
+    var opciones = shuffle(normales).concat(finales);
+    currentQuestions.push({ seq: seq, doc: doc, text: q[0], options: opciones, correctIdx: opciones.indexOf(correctText) });
+  }
+
+  var examDiv = document.getElementById('exam');
+  examDiv.innerHTML = '';
+  for (var k = 0; k < currentQuestions.length; k++) {
+    var qd = currentQuestions[k];
+    var div = document.createElement('div'); div.className = 'question';
+    var p = document.createElement('p');
+    p.textContent = (k + 1) + '. ' + qd.text;
+    var span = document.createElement('span'); span.className = 'qid';
+    span.textContent = (qd.doc !== null && qd.doc !== qd.seq) ? '  (c' + qd.seq + ' · doc #' + qd.doc + ')' : '  (#' + qd.seq + ')';
+    p.appendChild(span); div.appendChild(p);
+    for (var x = 0; x < qd.options.length; x++) {
+      var label = document.createElement('label');
+      var input = document.createElement('input');
+      input.type = 'radio'; input.name = 'q' + k; input.value = x;
+      label.appendChild(input);
+      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      div.appendChild(label);
+    }
+    examDiv.appendChild(div);
+  }
+  saveState(); renderInfo(); startTimer();
+}
+
+function submitExam(auto) {
+  if (examSubmitted) return;
+  examSubmitted = true;
+  if (timerInterval) clearInterval(timerInterval);
+  var correct = 0, html = '';
+  if (auto) html += '<p><strong>Tiempo agotado. Examen enviado automáticamente.</strong></p>';
+  for (var i = 0; i < currentQuestions.length; i++) {
+    var q = currentQuestions[i];
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var selVal = sel ? parseInt(sel.value, 10) : -1;
+    var isCorrect = (selVal === q.correctIdx);
+    if (isCorrect) correct++;
+    var tag = (q.doc !== null && q.doc !== q.seq) ? '(c' + q.seq + ' · doc #' + q.doc + ')' : '(#' + q.seq + ')';
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text + ' <span class="qid">' + tag + '</span><br>';
+    if (isCorrect) html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    else {
+      var given = selVal >= 0 ? q.options[selVal] : 'Sin respuesta';
+      html += '<span class="incorrect">Tu respuesta: ' + given + '</span><br>';
+      html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
+    }
+  }
+  var total = currentQuestions.length;
+  var pct = total > 0 ? ((correct / total) * 100).toFixed(1) : '0.0';
+  html = '<h2>Calificación: ' + correct + '/' + total + ' (' + pct + '%)</h2>' + html;
+  document.getElementById('result').innerHTML = html;
+  attemptNumber++;
+  examHistory.push({ attempt: attemptNumber, date: new Date().toLocaleString(), correct: correct, total: total, pct: pct, auto: !!auto });
+  saveState(); renderInfo(); renderHistory();
+  document.getElementById('submitBtn').disabled = true;
+  var r = document.getElementById('result');
+  if (r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderHistory() {
+  var div = document.getElementById('history');
+  if (examHistory.length === 0) { div.innerHTML = ''; return; }
+  var html = '<h2>Historial de intentos</h2><table><thead><tr><th>Intento</th><th>Fecha</th><th>Aciertos</th><th>%</th></tr></thead><tbody>';
+  for (var i = 0; i < examHistory.length; i++) {
+    var h = examHistory[i];
+    var cls = parseFloat(h.pct) >= 70 ? 'good' : 'bad';
+    html += '<tr><td>' + h.attempt + '</td><td>' + h.date + '</td><td>' + h.correct + '/' + h.total + '</td><td class="' + cls + '">' + h.pct + '%' + (h.auto ? ' (auto)' : '') + '</td></tr>';
+  }
+  html += '</tbody></table>';
+  div.innerHTML = html;
+}
+function clearHistory() {
+  if (!confirm('¿Borrar todo el historial y reiniciar el progreso?')) return;
+  examHistory = []; attemptNumber = 0; seenEver = {};
+  pool = shuffle(makeRange(questions.length));
+  try { localStorage.removeItem(KEY_HISTORY); localStorage.removeItem(KEY_POOL); localStorage.removeItem(KEY_SEEN); } catch (e) {}
+  renderHistory(); renderExam();
+}
+
+(function validarBanco() {
+  var errores = [];
+  for (var i = 0; i < questions.length; i++) {
+    var q = questions[i], tag = 'c' + (i + 1);
+    if (!Array.isArray(q) || (q.length !== 3 && q.length !== 4)) { errores.push(tag + ': formato inválido'); continue; }
+    if (!Array.isArray(q[1]) || q[1].length < 2) { errores.push(tag + ': sin opciones'); continue; }
+    if (typeof q[2] !== 'number' || q[2] < 0 || q[2] >= q[1].length) errores.push(tag + ': índice fuera de rango (' + q[2] + ')');
+    if (q.length === 4 && (typeof q[3] !== 'number' || q[3] <= 0)) errores.push(tag + ': número original inválido');
+  }
+  if (errores.length > 0) {
+    console.error('Errores en el banco:', errores);
+    var box = document.createElement('div');
+    box.style.cssText = 'background:#fee;color:#900;padding:10px;margin:10px 0;border:1px solid #c00;border-radius:5px;font-family:monospace;font-size:12px;';
+    box.innerHTML = '<strong>' + errores.length + ' error(es):</strong><br>' + errores.join('<br>');
+    document.querySelector('.container').insertBefore(box, document.querySelector('#timer'));
+  }
+})();
+
+window.addEventListener('beforeunload', function(e) {
+  if (!examSubmitted && document.querySelector('input[type="radio"]:checked')) {
+    e.preventDefault(); e.returnValue = '';
+  }
+});
+
+document.getElementById('submitBtn').addEventListener('click', function() { submitExam(false); });
+document.getElementById('resetBtn').addEventListener('click', function() {
+  var hay = false;
+  for (var i = 0; i < currentQuestions.length; i++) if (document.querySelector('input[name="q' + i + '"]:checked')) { hay = true; break; }
+  if (hay && !examSubmitted) { if (!confirm('Tienes respuestas sin calificar. ¿Seguro que quieres empezar otro examen?')) return; }
+  renderExam();
+});
+document.getElementById('clearBtn').addEventListener('click', clearHistory);
+
+loadState(); renderHistory(); renderExam();
+</script>
+</body>
+</html>
