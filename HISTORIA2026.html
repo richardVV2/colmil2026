@@ -12,7 +12,6 @@
   #attempt-info { text-align: center; color: #555; margin: 5px 0 15px; font-size: 0.92em; }
   .question { margin-bottom: 20px; padding: 10px; border-bottom: 1px solid #ddd; }
   .question p { font-weight: bold; }
-  .qid { color: #999; font-size: 0.85em; font-weight: normal; }
   label { display: block; margin: 5px 0; cursor: pointer; }
   button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 5px; font-size: 1em; cursor: pointer; margin: 10px 5px; }
   button:hover { background: #004999; }
@@ -54,14 +53,7 @@ var QUESTIONS_PER_EXAM = 30;
 
 /* ============================================================
    BANCO DE PREGUNTAS — Historia 2026
-   ------------------------------------------------------------
    Formato: [texto, [opciones], índice_correcto, numeroOriginalDocx]
-   índice: 0=A, 1=B, 2=C, 3=D
-
-   Numeración dual:
-     [cN]       = posición secuencial en el arreglo (1..111)
-     doc #M     = número original del documento .docx (2..200)
-   Para buscar: Ctrl+F "[c12]" o "doc #24"
    ============================================================ */
 var questions = [
   // [c1] doc #2
@@ -76,7 +68,7 @@ var questions = [
   ["¿Una de las instituciones más importantes del gobierno colonial en América fue?", ["La Universidad.", "Las Reales Audiencias.", "La Mita.", "El ejército Realista."], 1, 12],
   // [c6] doc #13
   ["¿Cuántas Intendencias tenía bajo su control la Real Audiencia de Charcas?", ["Tenía cuatro; de Potosí, de Beni, de la Plata y de Cochabamba.", "Tenía cuatro; de Potosí, de La Paz, de la Plata y de Cochabamba.", "Tenía cuatro; de Potosí, de La Paz, de Charcas y de Cochabamba.", "Tenía tres; de Pando, de la Plata y de Cochabamba."], 1, 13],
-  // [c7] doc #14 — CORREGIDO: correcta = "Don Pedro Domingo Murillo" (índice 2)
+  // [c7] doc #14 — CORREGIDO
   ["¿Quién fue el presidente de la junta nacional tuitiva y comandante del ejército patriota en La Paz?", ["Don Mariano Serrano.", "Dr. Daniel Salamanca.", "Don Pedro Domingo Murillo.", "Don Eustaquio Méndez."], 2, 14],
   // [c8] doc #15
   ["¿Quién le confirió el grado de Teniente Coronel a Juana Azurduy de Padilla?", ["El gobierno de Brasil le confirió el grado de Teniente Coronel sin derecho al uso del uniforme a esta notable mujer en reconocimiento a su coraje.", "El gobierno de las Provincias Unidas del Río de la Plata le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme a esta notable mujer en reconocimiento a su coraje.", "El Ejército de Bolivia le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme a esta notable mujer en reconocimiento a su coraje.", "El Ejército de Perú le confirió el grado de Teniente Coronel activo con derecho al uso del uniforme a esta notable mujer en reconocimiento a su coraje."], 1, 15],
@@ -88,11 +80,11 @@ var questions = [
   ["¿Cuáles eran las principales republiquitas que combatieron contra los realistas en la guerra de la independencia?", ["Republiqueta de Moxos, Chiquitos, Titicaca.", "Republiqueta de la Laguna, Ayopaya, Larecaja, Chuquisaca.", "Republiqueta de Betanzos, Ayo uma, Cochabamba.", "Republiqueta del Pari, Inquisivi, Toranzos, Carcaje."], 1, 22],
   // [c12] doc #23
   ["¿Quién se encontraba a la cabeza de la Republiqueta de Larecaja?", ["José de las Muñecas.", "Manuel de las Muñecas.", "Idelfonso de las Muñecas.", "Alonzo de las Muñecas."], 2, 23],
-  // [c13] doc #24 — CORREGIDO: correcta = "El Tambor Mayor José Santos Vargas." (índice 3)
+  // [c13] doc #24 — CORREGIDO
   ["¿Quién registró en un diario los hechos ocurridos en la Republiqueta de Ayopaya?", ["El Tambor Mayor José Manuel Chinchilla.", "El Tambor Mayor José Domingo Gandarillas.", "El Tambor Mayor Eusebio Lira.", "El Tambor Mayor José Santos Vargas."], 3, 24],
   // [c14] doc #25
   ["¿Entre qué periodos nacen y se consolidan las guerrillas formando Republiquetas?", ["De 1.810 a 1.820.", "De 1.811 a 1.821.", "De 1.812 a 1.822.", "De 1.813 a 1.823."], 1, 25],
-  // [c15] doc #26 — CORREGIDO: correcta = "La Republiqueta de Ayopaya." (índice 3)
+  // [c15] doc #26 — CORREGIDO
   ["¿Cuál fue la única Republiqueta que llegó hasta la Independencia de Bolivia?", ["La Republiqueta de Mizque.", "La Republiqueta de los esposos Padilla.", "La Republiqueta de Mohosa.", "La Republiqueta de Ayopaya."], 3, 26],
   // [c16] doc #27
   ["Mencione tres batallas que se desarrollaron durante las Campañas de la Confederación Perú – Boliviana.", ["Aroma; Yanacocha y Tumusla.", "Yanacocha; Socabaya y Paucarpata.", "Socabaya, Tacna y Montenegro.", "Boquerón; Tarapacá y Paucarpata."], 1, 27],
@@ -104,13 +96,13 @@ var questions = [
   ["¿Cuándo y con qué nombre se fundó la ciudad de Cobija?", ["Fue fundada el 9 de febrero de 1906 con el nombre de Bahía.", "Fue fundada el 9 de enero de 1906 con el nombre de Bahía.", "Fue fundada el 9 de Abril de 1906 con el nombre de Bahía.", "Fue fundada el 9 de febrero de 1906 con el nombre de Cobija."], 0, 30],
   // [c20] doc #31
   ["¿En qué fecha y año la jurisdicción de la audiencia de Charcas volvió a pertenecer al virreinato del Perú?", ["El 03 de agosto de 1810.", "El 10 de Octubre de 1810.", "El 23 de Octubre de 1800.", "El 21 de Agosto de 1810."], 0, 31],
-  // [c21] doc #32 — CORREGIDO: correcta = "El 15 de enero de 1781." (índice 3)
+  // [c21] doc #32 — CORREGIDO
   ["Tomás Katari fue ejecutado por despeñamiento en la región de Chataquilla, cerca de la ciudad de La Plata, en la actualidad Sucre. ¿En qué fecha ocurrió la muerte del líder indígena?", ["El 17 de Julio de 1871.", "El 21 de Agosto de 1800.", "El 1 de Agosto de 1781.", "El 15 de enero de 1781."], 3, 32],
   // [c22] doc #33
   ["En Santa Cruz también se da un levantamiento contra la corona española, dirigido por los cruceños Suárez y Seoane, junto a los chuguisaqueños Lemoine y Moldes. ¿Qué fecha se da este levantamiento?", ["El 24 de septiembre de 1810.", "El 23 de septiembre de 1819.", "El 24 de septiembre de 1809.", "El 20 de septiembre de 1810."], 0, 33],
-  // [c23] doc #34 — CORREGIDO: correcta = "Tomás Barrón..." (índice 1)
+  // [c23] doc #34 — CORREGIDO
   ["Siguiendo la ola de levantamientos luego de 1809, la ciudad de Oruro se subleva el 6 de octubre de 1810. ¿Quiénes dirigieron este levantamiento?", ["Tambor Vargas, el cacique indígena de Zárate y Manuel Victoriano Aguilario de Titichoca.", "Tomás Barrón, el cacique indígena de Toledo y Manuel Victoriano Aguilario de Titichoca.", "Tomás Manchego, el cacique indígena de Huaqui y Manuel Victoriano Cepeda de Achacachi.", "Ninguna de las anteriores."], 1, 34],
-  // [c24] doc #35 — CORREGIDO: correcta = "El 10 de noviembre de 1810." (índice 2)
+  // [c24] doc #35 — CORREGIDO
   ["Potosí se levanta contra el dominio español. A la cabeza de este movimiento están los patriotas como Salvador Mattos, Alejo y Mariano Nogales, los hermanos Millares, Manuel Molina, Mariano Zubieta, Melchor Daza, Diego Barrenechea y Pedro Costas. ¿En qué fecha se da esta revolución?", ["El 16 de noviembre de 1810.", "El 15 de noviembre de 1810.", "El 10 de noviembre de 1810.", "El 14 de noviembre de 1810."], 2, 35],
   // [c25] doc #36
   ["¿Qué año y dónde sucede el último levantamiento contra el dominio español dirigido por Esteban Arce?", ["El año 1811 en la ciudad de Cochabamba.", "El año 1812 en la ciudad de Cochabamba.", "El año 1781 en la ciudad de Oruro.", "El año 1810 en la ciudad de Cochabamba."], 0, 36],
@@ -140,7 +132,7 @@ var questions = [
   ["¿Con qué nombre se funda el Departamento de Tarija?", ["Villa del Gran Chaco.", "Villa de San Bernardo de La Frontera.", "Villa de San Lorenzo.", "Ninguno de los anteriores."], 1, 48],
   // [c38] doc #49
   ["¿Quién fue el héroe de la Batalla de la Tablada?", ["Eustaquio Méndez.", "Manuel Ascencio Padilla.", "José Miguel Lanza.", "Ildefonso de las Muñecas."], 0, 49],
-  // [c39] doc #50 — CORREGIDO: correcta = "25 de mayo de 1809." (índice 1)
+  // [c39] doc #50 — CORREGIDO
   ["¿En qué fecha se llevó a cabo la batalla de Aroma?", ["14 de septiembre de 1.810.", "25 de mayo de 1809.", "14 de noviembre de 1810.", "16 de julio de 1809."], 1, 50],
   // [c40] doc #51
   ["¿Quién fue designado presidente de la Junta Tuitiva al proclamarse la Revolución de La Paz, siguiendo al levantamiento de Chuquisaca?", ["Jaime Zudáñez.", "Juana Azurduy.", "Eustaquio Méndez.", "Pedro Domingo Murillo."], 3, 51],
@@ -158,7 +150,7 @@ var questions = [
   ["¿Quién estaba al mando del Ejército Restaurador Perú - Chile, siendo derrotado por el Mariscal Santa Cruz y firmó su rendición mediante el Tratado de Paucarpata?", ["Tcnl. Eleuterio Ramírez Molina.", "Cnl. Emilio Sotomayor Baeza.", "Gral. Manuel Blanco Encalada.", "Gral. Bernardo O'Higgins Riquelme."], 2, 60],
   // [c47] doc #61
   ["¿Quién fue el primer presidente boliviano nacido en esta Patria?", ["Pedro Blanco.", "José Miguel de Velasco.", "Simón Bolívar.", "José María Pérez de Urdininea."], 3, 61],
-  // [c48] doc #62 — CORREGIDO: correcta = "Murió el 25 de septiembre de 1865." (índice 0)
+  // [c48] doc #62 — CORREGIDO
   ["¿En qué fecha y año murió Andrés de Santa Cruz y Calahumana?", ["Murió el 25 de septiembre de 1865.", "Murió el 28 de septiembre de 1868.", "Murió el 26 de septiembre de 1864.", "Murió el 24 de septiembre de 1866."], 0, 62],
   // [c49] doc #63
   ["¿En qué fecha y año se desarrolló la batalla de Ingavi?", ["19 de noviembre de 1847.", "21 de noviembre de 1845.", "23 de noviembre de 1846.", "18 de noviembre de 1841."], 3, 63],
@@ -196,19 +188,19 @@ var questions = [
   ["¿Dónde se desarrolló la Batalla de Tacna (Alto de la Alianza)?", ["En la meseta del cerro Inti Orko.", "En Villamontes.", "En Puno.", "En Villazón."], 0, 110],
   // [c66] doc #111
   ["¿Cuándo y cómo termina la Guerra del Pacífico?", ["La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Ancón.", "La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Uti possidetis juris.", "La guerra del Pacífico concluyó el 20 de septiembre de 1883 con la firma del tratado de Ancón.", "La guerra del Pacífico concluyó el 20 de octubre de 1883 con la firma del tratado de Alcón."], 0, 111],
-  // [c67] doc #136 — CORREGIDO: correcta = "23 días." (índice 0)
+  // [c67] doc #136 — CORREGIDO
   ["¿Después de cuántos días de combate el fortín Boquerón cayó nuevamente en manos paraguayas?", ["23 días.", "27 días.", "33 días.", "16 días."], 0, 136],
   // [c68] doc #137
   ["¿Quién dijo: \"No soy enemigo de los ricos, pero soy más amigo de los pobres\"?", ["El Cnl. Gualberto Villarroel López.", "El Lic. Jaime Paz Zamora.", "El Cnl. Enrique Peñaranda.", "El Lic. Víctor Paz Estenssoro."], 0, 137],
   // [c69] doc #138
   ["¿Cuándo comenzó y terminó la guerra del Chaco?", ["Comenzó el 09 de agosto de 1932 y terminó el 12 de julio de 1936.", "Comenzó el 10 de septiembre de 1932 y terminó el 12 de julio de 1935.", "Comenzó el 08 de octubre de 1932 y terminó el 12 de julio de 1935.", "Comenzó el 09 de septiembre de 1932 y terminó el 12 de julio de 1935."], 3, 138],
-  // [c70] doc #139 — CORREGIDO: correcta = "23 días." (índice 0), igual que doc #136
+  // [c70] doc #139 — CORREGIDO (igual que doc #136)
   ["¿Después de cuántos días de combate el fortín Boquerón cayó nuevamente en manos paraguayas?", ["23 días.", "27 días.", "33 días.", "16 días."], 0, 139],
   // [c71] doc #140
   ["¿A qué general extranjero el Presidente Salamanca nombró Comandante en Jefe del Ejército en campaña durante la Guerra del Chaco?", ["Al general Ruso Iván Dragonov.", "Al general Polaco Russel Laika.", "Al general Alemán Hans Kunt.", "Al general Soviético Yuri Boika."], 2, 140],
-  // [c72] doc #141 — CORREGIDO: correcta = "Batalla de Kilómetro 7." (índice 3)
+  // [c72] doc #141 — CORREGIDO
   ["¿Cuál fue la batalla que a fines de 1932, encabezada por el Teniente Coronel Bernardino Bilbao Rioja, detuvo el avance paraguayo?", ["Batalla de Boquerón.", "Batalla de Cañada Strongest.", "Batalla de Nanawa.", "Batalla de Kilómetro 7."], 3, 141],
-  // [c73] doc #142 — CORREGIDO: correcta = "28 de Julio de 1938." (índice 3)
+  // [c73] doc #142 — CORREGIDO
   ["¿En qué fecha y año se firmó el tratado de Paz, Amistad y Límites entre Bolivia y Paraguay?", ["28 de Julio de 1946.", "29 de Junio de 1938.", "12 de Junio de 1935.", "28 de Julio de 1938."], 3, 142],
   // [c74] doc #143
   ["Durante la Guerra del Chaco, ¿En qué fecha y año se llevó a cabo el primer combate aéreo que es considerado el primero en América?", ["04 de diciembre de 1936, salió victorioso Germán Busch.", "04 de diciembre de 1936, salió victorioso Rafael Pabón.", "04 de diciembre de 1932, salió victorioso Rafael Pabón.", "04 de diciembre de 1936, salió victorioso Emilio Rocholl."], 2, 143],
@@ -218,15 +210,15 @@ var questions = [
   ["¿Quién comandaba el ejército boliviano durante la tercera fase de la Guerra del Chaco?", ["David Toro.", "Bernardino Bilbao.", "Enrique Peñaranda.", "Germán Busch."], 2, 145],
   // [c77] doc #146
   ["¿En julio de 1946 el entonces Tcnl. Gualberto Villarroel fue derrocado y ahorcado en?", ["Un farol de la Plaza Murillo de La Paz.", "Un poste de la Plaza Principal de Potosí.", "Un farol de la Plaza Riosiño de La Paz.", "Un poste de la Plaza Eguino de La Paz."], 0, 146],
-  // [c78] doc #147 — CORREGIDO: correcta = "Enrique Peñaranda." (índice 3)
+  // [c78] doc #147 — CORREGIDO
   ["¿Qué General relevó del mando al General Hans Kunt en la guerra del Chaco?", ["Pedro Blanco.", "Bernardino Bilbao Rioja.", "David Toro.", "Enrique Peñaranda."], 3, 147],
   // [c79] doc #148
   ["El soldado boliviano probó una vez más en la Guerra del Chaco su valor y heroísmo como lo hiciera antes, en la Guerra del Pacífico. Sin pretender ignorar a los soldados anónimos indígenas y obreros. ¿Cuáles fueron algunos referentes de aquellos bolivianos que defendieron Bolivia en la Guerra del Chaco?", ["Rafael Pabón, Germán Jordán, Otto Felipe Braun, Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Germán Jordán, Bernardino Bilbao Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Maximiliano Paredes, Bernardino Bilbao Rioja, Marzana, Charata Ustariz, Cabo Juan.", "Rafael Pabón, Germán Jordán, Tambor Vargas, Marzana, Charata Ustariz, Cabo Juan."], 1, 148],
-  // [c80] doc #149 — CORREGIDO: correcta = "El 23 de agosto de 1939." (índice 0)
+  // [c80] doc #149 — CORREGIDO
   ["¿Qué fecha aconteció la muerte de Germán Busch Becerra?", ["El 23 de agosto de 1939.", "El 25 de agosto de 1940.", "El 31 de agosto de 1939.", "Ninguno de los anteriores."], 0, 149],
-  // [c81] doc #150 — CORREGIDO: correcta = "Tcnl. Manuel Marzana Oroza." (índice 3)
+  // [c81] doc #150 — CORREGIDO
   ["¿Quién fue el Comandante Boliviano del Destacamento que defendió el Fortín Boquerón en la primera fase de la guerra del Chaco?", ["Cap. Víctor Ustariz Arce.", "Tcnl. Germán Busch Becerra.", "Tcnl. Francisco Manchego Figueroa.", "Tcnl. Manuel Marzana Oroza."], 3, 150],
-  // [c82] doc #151 — CORREGIDO: correcta = "Laguna Chuquisaca." (índice 0)
+  // [c82] doc #151 — CORREGIDO
   ["¿Cómo se denominó a la laguna descubierta por el My. Moscoso al inicio de la guerra del Chaco?", ["Laguna Chuquisaca.", "Laguna Cotagaita.", "Laguna Concepción.", "Laguna Grande."], 0, 151],
   // [c83] doc #152
   ["¿Quién fue uno de los grandes héroes de la guerra del Chaco protagonista de Kilómetro 7 y la Defensa de Villamontes?", ["Enrique Peñaranda.", "Bernardino Bilbao Rioja.", "David Toro.", "Germán Busch Becerra."], 1, 152],
@@ -289,11 +281,7 @@ var questions = [
 ];
 
 /* ============================================================
-   HELPERS DE BÚSQUEDA (consola)
-   ------------------------------------------------------------
-   findBySeq(12)  → pregunta secuencial 12 (posición en el código)
-   findByDoc(24)  → pregunta con número original 24 (del .docx)
-   Ambos devuelven: { seq, doc, texto, opciones, correcta }
+   HELPERS DE BÚSQUEDA (consola) — internos, no visibles en UI
    ============================================================ */
 function findBySeq(seq) {
   var i = seq - 1;
@@ -432,13 +420,13 @@ function renderInfo() {
   var pct = total > 0 ? Math.round((seen / total) * 100) : 0;
   document.getElementById('attempt-info').textContent =
     'Intento #' + (attemptNumber + 1) +
-    ' · Banco: ' + total + ' preguntas (c1–c' + total + ')' +
+    ' · Banco: ' + total + ' preguntas' +
     ' · ' + QUESTIONS_PER_EXAM + ' por examen' +
     ' · Vistas: ' + seen + '/' + total + ' (' + pct + '%)';
 }
 
 /* ============================================================
-   RENDER
+   RENDER (sin mostrar índices cN / doc #M al usuario)
    ============================================================ */
 function renderExam() {
   if (timerInterval) clearInterval(timerInterval);
@@ -460,8 +448,8 @@ function renderExam() {
     var q = questions[picked[j]];
     if (!q) continue;
     var correctText = q[1][q[2]];
-    var seq = picked[j] + 1;                       // cN
-    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;  // doc #M
+    var seq = picked[j] + 1;                       // se guarda internamente
+    var doc = (q.length >= 4 && typeof q[3] === 'number') ? q[3] : null;  // se guarda internamente
 
     var normales = [], finales = [];
     for (var o = 0; o < q[1].length; o++) {
@@ -486,17 +474,15 @@ function renderExam() {
   var examDiv = document.getElementById('exam');
   examDiv.innerHTML = '';
 
+  var letras = ['A','B','C','D','E','F'];
   for (var k = 0; k < currentQuestions.length; k++) {
     var qd = currentQuestions[k];
     var div = document.createElement('div');
     div.className = 'question';
 
     var p = document.createElement('p');
+    // Solo el número de pregunta y el texto. SIN (cN · doc #M)
     p.textContent = (k + 1) + '. ' + qd.text;
-    var span = document.createElement('span');
-    span.className = 'qid';
-    span.textContent = '  (c' + qd.seq + ' · doc #' + qd.doc + ')';
-    p.appendChild(span);
     div.appendChild(p);
 
     for (var x = 0; x < qd.options.length; x++) {
@@ -506,7 +492,7 @@ function renderExam() {
       input.name = 'q' + k;
       input.value = x;
       label.appendChild(input);
-      label.appendChild(document.createTextNode(' ' + qd.options[x]));
+      label.appendChild(document.createTextNode(' ' + letras[x] + ') ' + qd.options[x]));
       div.appendChild(label);
     }
     examDiv.appendChild(div);
@@ -518,7 +504,7 @@ function renderExam() {
 }
 
 /* ============================================================
-   CALIFICAR
+   CALIFICAR (sin mostrar índices en el resultado)
    ============================================================ */
 function submitExam(auto) {
   if (examSubmitted) return;
@@ -536,8 +522,7 @@ function submitExam(auto) {
     var isCorrect = (selVal === q.correctIdx);
     if (isCorrect) correct++;
 
-    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text +
-            ' <span class="qid">(c' + q.seq + ' · doc #' + q.doc + ')</span><br>';
+    html += '<p><strong>' + (i + 1) + '.</strong> ' + q.text + '<br>';
     if (isCorrect) {
       html += '<span class="correct">Correcto: ' + q.options[q.correctIdx] + '</span></p>';
     } else {
